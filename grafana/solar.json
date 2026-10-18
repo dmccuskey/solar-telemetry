@@ -957,7 +957,18 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT difference(last(\"pv_total_wh\")) AS \"PV energy\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) tz('$tz')",
+          "query": "SELECT difference(last(\"pv_total_wh\")) AS \"Controller total\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT integral(\"pv_w\", 1h) AS \"From PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         }
@@ -970,9 +981,35 @@
             "lineWidth": 1
           },
           "mappings": [],
-          "unit": "watth"
+          "unit": "watth",
+          "decimals": 1
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller total"
+            },
+            "properties": [
+              {
+                "id": "custom.barAlignment",
+                "value": -1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "From PV W"
+            },
+            "properties": [
+              {
+                "id": "custom.barAlignment",
+                "value": 1
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "legend": {
