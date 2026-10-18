@@ -2,14 +2,13 @@
 
 Installing the long-running service on a Raspberry Pi, as a systemd service under its own user. The design is in [ADR 002](decisions/002-long-running-service.md).
 
-> **Status:** the service is new. The [Quick Start](../README.md#quick-start) still sets up the earlier, timer-based collector; this page replaces it once the service has run for a while.
+The [Quick Start](../README.md#quick-start) is the short version of this page.
 
 ## What You Need
 
 - A Raspberry Pi with Bluetooth, running Raspberry Pi OS (Debian 12 or later), within range of the controller's BT module: `bluetoothctl show`
 - Python 3.11 or later: `python3 --version`
 - InfluxDB 1.x on the same Pi, as `influxdb.service`, with authentication off: `systemctl status influxdb`
-- The BT module's MAC address. Its name starts with `BT-TH`; `tools/scan_ble.py` lists what's in range.
 
 The service creates its database (`solar` by default) on its first write.
 
@@ -34,13 +33,23 @@ python3 -m venv .venv
 .venv/bin/pip install -e .
 ```
 
-`pip` takes a few minutes on a Pi 3. Check that it worked:
+`pip` can take a few minutes on a Pi 3. Check that it worked:
 
 ```bash
 .venv/bin/solar-telemetry --help
 ```
 
 ## 3. Configure It
+
+Find the controller's BT module, whose name starts with `BT-TH`, and note its MAC address:
+
+```bash
+.venv/bin/python tools/scan_ble.py
+```
+
+```text
+AA:BB:CC:DD:EE:FF  rssi=-71  name=BT-TH-XXXXXXXX
+```
 
 The config lives in `/etc/solar-telemetry/`, readable by root and the service user only:
 
