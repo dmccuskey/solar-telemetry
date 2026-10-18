@@ -4,7 +4,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 
 ## Start
 
-- [Installation](installation.md): the full setup on a Raspberry Pi, under its own user, with its sudoers file and systemd unit; switching from the earlier timer, and updating
+- [Installation](installation.md): the full setup on a Raspberry Pi, under its own user, with its sudoers file and systemd unit; the Grafana dashboard; switching from the earlier timer, and updating
 
 ## Use
 
@@ -34,6 +34,9 @@ systemd/
 ├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
 ├── renogy-poll.service     the earlier collector, run once (oneshot, under flock)
 └── renogy-poll.timer       every 5 minutes
+grafana/
+├── datasource.yaml         the solar data source, for Grafana's provisioning folder
+└── solar.json              the dashboard, to import
 scripts/
 ├── dev.sh                  development loop: test here, deploy to the Pi, run there, read the logs
 ├── network-watchdog.sh     run by network-watchdog.service

@@ -104,6 +104,24 @@ journalctl -u solar-telemetry -f
 
 The unit restarts the service if it crashes, if it stops pinging systemd's watchdog for 3 minutes, and when it exits after every recovery step has failed. Restarts back off from 30 seconds to 30 minutes and never stop for good.
 
+## 7. Graph It in Grafana
+
+Optional, on the machine that runs Grafana (9 or later, with its InfluxDB data source). The files are in `grafana/`.
+
+The data source, `solar`, is a provisioning file: Grafana loads it at startup. Put in the Pi's IP address or plain hostname, not a `.local` name: Grafana's own resolver skips mDNS, so a `.local` name fails with "no such host".
+
+```bash
+sed 's/SOLARPI_ADDRESS/192.0.2.10/' grafana/datasource.yaml |
+  sudo install -o root -g grafana -m 640 /dev/stdin /etc/grafana/provisioning/datasources/solar.yaml
+sudo systemctl restart grafana-server
+```
+
+Its **Min time interval** of 5 minutes, the read interval, means every panel shows one value per 5 minutes at most: the mean of a voltage, the last charging state, the worst connect time.
+
+The dashboard, `grafana/solar.json`, is imported by hand, so it stays editable in Grafana: **Dashboards › New › Import**, upload the file. Then set its **Time zone** variable (under **Edit › Settings › Variables**) to yours, such as `Europe/Berlin`, so the daily panels' days start at your midnight, and save. The dashboard shows the last 6 hours; the daily panels keep to the last 14 days whatever the range.
+
+After changing the dashboard in Grafana, export it again (**Export › Export as JSON**, without "Export for sharing externally") over `grafana/solar.json`.
+
 ## Switching from the Timer
 
 The service replaces `renogy-poll.timer`. Only one of them can run, since they share the controller's one connection:
