@@ -1,0 +1,1485 @@
+{
+  "uid": "solar",
+  "title": "Solar",
+  "tags": [
+    "solar-telemetry"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "schemaVersion": 42,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "controller",
+        "label": "Controller",
+        "type": "query",
+        "datasource": {
+          "type": "influxdb",
+          "uid": "solar"
+        },
+        "query": "SHOW TAG VALUES WITH KEY = \"controller\"",
+        "definition": "SHOW TAG VALUES WITH KEY = \"controller\"",
+        "refresh": 1,
+        "sort": 1,
+        "current": {
+          "text": "car",
+          "value": "car"
+        },
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "tz",
+        "label": "Time zone",
+        "type": "textbox",
+        "query": "UTC",
+        "current": {
+          "text": "UTC",
+          "value": "UTC"
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "UTC",
+            "value": "UTC"
+          }
+        ],
+        "description": "For the daily panels: an IANA name, such as Europe/Berlin"
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Now",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Battery",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"battery_v\") AS \"Battery\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "volt",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "State of charge",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"battery_soc_pct\") AS \"SOC\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Charging state",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"charging_state\") AS \"State\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "deactivated",
+                  "color": "text",
+                  "index": 0
+                },
+                "1": {
+                  "text": "activated",
+                  "color": "blue",
+                  "index": 1
+                },
+                "2": {
+                  "text": "mppt",
+                  "color": "green",
+                  "index": 2
+                },
+                "3": {
+                  "text": "equalizing",
+                  "color": "purple",
+                  "index": 3
+                },
+                "4": {
+                  "text": "boost",
+                  "color": "orange",
+                  "index": 4
+                },
+                "5": {
+                  "text": "floating",
+                  "color": "super-light-green",
+                  "index": 5
+                },
+                "6": {
+                  "text": "current limiting",
+                  "color": "yellow",
+                  "index": 6
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "PV power",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"pv_w\") AS \"PV\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "watt",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Controller",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"controller_temp_c\") * 9 / 5 + 32 AS \"Temperature\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "fahrenheit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Faults",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"faults\") AS \"Faults\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Battery",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"battery_v\") AS \"Battery V\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT mean(\"pv_v\") AS \"PV V\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
+          "query": "SELECT mean(\"battery_soc_pct\") AS \"SOC\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": 660000,
+            "showPoints": "never"
+          },
+          "mappings": [],
+          "unit": "volt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SOC"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Charging",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"pv_w\") AS \"PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT mean(\"battery_charge_a\") AS \"Charge A\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": 660000,
+            "showPoints": "never"
+          },
+          "mappings": [],
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Charge A"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "amp"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "state-timeline",
+      "title": "Charging state",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"charging_state\") AS \"State\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "deactivated",
+                  "color": "text",
+                  "index": 0
+                },
+                "1": {
+                  "text": "activated",
+                  "color": "blue",
+                  "index": 1
+                },
+                "2": {
+                  "text": "mppt",
+                  "color": "green",
+                  "index": 2
+                },
+                "3": {
+                  "text": "equalizing",
+                  "color": "purple",
+                  "index": 3
+                },
+                "4": {
+                  "text": "boost",
+                  "color": "orange",
+                  "index": 4
+                },
+                "5": {
+                  "text": "floating",
+                  "color": "super-light-green",
+                  "index": 5
+                },
+                "6": {
+                  "text": "current limiting",
+                  "color": "yellow",
+                  "index": 6
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "auto",
+        "alignValue": "left",
+        "rowHeight": 0.9,
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Controller temperature",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"controller_temp_c\") * 9 / 5 + 32 AS \"Controller\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": 660000,
+            "showPoints": "never"
+          },
+          "mappings": [],
+          "unit": "fahrenheit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Lifetime",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"over_discharges\") AS \"Over-discharges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT last(\"full_charges\") AS \"Full charges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
+          "query": "SELECT last(\"operating_days\") AS \"Operating days\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "D",
+          "rawQuery": true,
+          "query": "SELECT last(\"pv_total_wh\") AS \"PV energy\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "E",
+          "rawQuery": true,
+          "query": "SELECT last(\"charge_total_ah\") AS \"Charged\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PV energy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watth"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Charged"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: Ah"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "none",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Daily",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "PV energy per day",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT difference(last(\"pv_total_wh\")) AS \"Controller total\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT integral(\"pv_w\", 1h) AS \"From PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "mappings": [],
+          "unit": "watth",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Controller total"
+            },
+            "properties": [
+              {
+                "id": "custom.barAlignment",
+                "value": -1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "From PV W"
+            },
+            "properties": [
+              {
+                "id": "custom.barAlignment",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "14d"
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Battery voltage, daily min and max",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT min(\"battery_v\") AS \"Min\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT max(\"battery_v\") AS \"Max\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 6
+          },
+          "mappings": [],
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "14d"
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "PV voltage, daily max",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 25,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT max(\"pv_v\") AS \"Max\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 6
+          },
+          "mappings": [],
+          "unit": "volt"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "timeFrom": "14d"
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Collector",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 17,
+          "type": "state-timeline",
+          "title": "Outcome",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 34,
+            "w": 24,
+            "h": 4
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "query": "SELECT last(\"outcome\") AS \"Outcome\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "lineWidth": 0,
+                "fillOpacity": 80
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "ok": {
+                      "text": "ok",
+                      "color": "green",
+                      "index": 0
+                    }
+                  }
+                },
+                {
+                  "type": "regex",
+                  "options": {
+                    "pattern": ".+",
+                    "result": {
+                      "color": "red",
+                      "index": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "mergeValues": true,
+            "showValue": "auto",
+            "alignValue": "left",
+            "rowHeight": 0.9,
+            "legend": {
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "single"
+            }
+          }
+        },
+        {
+          "id": 18,
+          "type": "timeseries",
+          "title": "Cycle times",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 38,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "query": "SELECT max(\"find_s\") AS \"Find\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            },
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "B",
+              "rawQuery": true,
+              "query": "SELECT max(\"connect_s\") AS \"Connect\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            },
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "C",
+              "rawQuery": true,
+              "query": "SELECT max(\"read_s\") AS \"Read\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": 660000,
+                "showPoints": "never"
+              },
+              "mappings": [],
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          }
+        },
+        {
+          "id": 19,
+          "type": "timeseries",
+          "title": "Signal strength",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 38,
+            "w": 12,
+            "h": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "query": "SELECT mean(\"rssi_dbm\") AS \"RSSI\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            },
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "B",
+              "rawQuery": true,
+              "query": "SELECT mean(\"rssi_dbm\") AS \"Mean\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": 660000,
+                "showPoints": "never",
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "unit": "dBm",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "transparent",
+                    "value": null
+                  },
+                  {
+                    "color": "text",
+                    "value": -85
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "showLegend": true,
+              "calcs": [
+                "mean",
+                "min",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "transformations": [
+            {
+              "id": "configFromData",
+              "options": {
+                "configRefId": "B",
+                "mappings": [
+                  {
+                    "fieldName": "Mean",
+                    "handlerKey": "threshold1",
+                    "reducerId": "lastNotNull"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "type": "timeseries",
+          "title": "Recovery, throttling, queue",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 46,
+            "w": 24,
+            "h": 6
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "query": "SELECT max(\"recovery_step\") AS \"Recovery step\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            },
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "B",
+              "rawQuery": true,
+              "query": "SELECT max(\"throttled\") AS \"Throttled\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            },
+            {
+              "datasource": {
+                "type": "influxdb",
+                "uid": "solar"
+              },
+              "refId": "C",
+              "rawQuery": true,
+              "query": "SELECT last(\"queued\") AS \"Queued\" FROM \"collector\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+              "resultFormat": "time_series",
+              "alias": "$col"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": 660000,
+                "showPoints": "never",
+                "lineInterpolation": "stepAfter"
+              },
+              "mappings": [],
+              "decimals": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

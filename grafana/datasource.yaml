@@ -1,0 +1,17 @@
+# Grafana data source for the `solar` database, loaded at Grafana's startup.
+# Install: replace SOLARPI_ADDRESS with the collector Pi's IP address or plain
+# hostname (not a .local name: Grafana's resolver skips mDNS), then copy to
+# /etc/grafana/provisioning/datasources/solar.yaml and restart grafana-server.
+apiVersion: 1
+
+datasources:
+  - name: solar
+    uid: solar
+    type: influxdb
+    access: proxy
+    url: http://SOLARPI_ADDRESS:8086
+    jsonData:
+      dbName: solar
+      httpMode: GET
+      # Panels bucket by at least 5 minutes, the read interval.
+      timeInterval: 5m
