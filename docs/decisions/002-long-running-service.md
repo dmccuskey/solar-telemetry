@@ -27,8 +27,8 @@ The collector becomes one long-running Python process (asyncio), run by systemd 
   - **Adapter dead:** a scan sees nothing at all, or errors. Escalate.
   - **Undervoltage:** `get_throttled` isn't `0x0`. Log it with every failure, since resets won't fix power.
 - **The recovery ladder** climbs one step at a time, with a wait after each and a reset back to the bottom after a good reading: retry; power-cycle the controller (`bluetoothctl power off/on`); restart `bluetooth.service`; exit with an error and let systemd restart the service. Restarting `dbus` and rebooting the Pi stay manual.
-- **When InfluxDB is down,** readings wait in a bounded queue in memory (about a week of readings at the default interval) and are written, with their original timestamps, once it's back. If writes keep failing, the service restarts InfluxDB (`influxd.service`) once. When the queue is full, the oldest readings are dropped and the drop is logged.
-- **Privileges:** the service runs as an unprivileged user. The few commands it needs as root (`bluetoothctl`, `systemctl restart bluetooth` and `influxd`) are allowed by name in a sudoers file.
+- **When InfluxDB is down,** readings wait in a bounded queue in memory (about a week of readings at the default interval) and are written, with their original timestamps, once it's back. If writes keep failing, the service restarts InfluxDB (`influxdb.service`) once. When the queue is full, the oldest readings are dropped and the drop is logged.
+- **Privileges:** the service runs as an unprivileged user. The few commands it needs as root (`bluetoothctl`, `systemctl restart bluetooth` and `systemctl restart influxdb`) are allowed by name in a sudoers file.
 
 ## Consequences
 
