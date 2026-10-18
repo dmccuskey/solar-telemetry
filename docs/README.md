@@ -16,6 +16,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 - [Architecture](architecture.md): how the service works inside: its modules, each cycle, the safety model, the tools, and the design history
 - [ADR 001: Our Own BLE Client, Not renogy-bt](decisions/001-own-ble-client.md)
 - [ADR 002: A Long-Running Service with In-Process Recovery](decisions/002-long-running-service.md)
+- [ADR 003: bluetoothd Without Its GAP Plugin](decisions/003-no-gap-plugin.md)
 
 ## Project Structure
 

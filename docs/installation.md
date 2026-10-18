@@ -75,7 +75,7 @@ sudo -l -U solar-telemetry
 
 ## 5. Keep Connects Fast
 
-bluetoothd's GAP plugin has the BT module's connections run 10 times slower on every other connect: it applies the module's stored preference of 100 to 200 ms between packets, while the module asks for 10 to 20 ms once it's connected, and the kernel keeps whichever came last for the next connect. Without the plugin, every connect takes about 1.3 s instead of 11 s on every other cycle. Nothing else the plugin reads is needed: the service finds the controller by address.
+bluetoothd's GAP plugin has the BT module's connections run 10 times slower on every other connect: it applies the module's stored preference of 100 to 200 ms between packets, while the module asks for 10 to 20 ms once it's connected, and the kernel keeps whichever came last for the next connect. Without the plugin, every connect takes about 1.3 s instead of 11 s on every other cycle. Nothing else the plugin reads is needed: the service finds the controller by address. The reasons, and the trace behind them, are in [ADR 003](decisions/003-no-gap-plugin.md).
 
 ```bash
 sudo mkdir -p /etc/systemd/system/bluetooth.service.d

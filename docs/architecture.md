@@ -1,6 +1,6 @@
 # Architecture
 
-How the collector works inside: one long-running Python process, run by systemd, with its own Bluetooth client. The reasons behind it are in the two [decisions](#decisions) below.
+How the collector works inside: one long-running Python process, run by systemd, with its own Bluetooth client. The reasons behind it are in the [decisions](#decisions) below.
 
 ## Overview
 
@@ -68,3 +68,4 @@ The collector started as a systemd timer running a script, which ran [renogy-bt]
 
 - [ADR 001: Our Own BLE Client, Not renogy-bt](decisions/001-own-ble-client.md)
 - [ADR 002: A Long-Running Service with In-Process Recovery](decisions/002-long-running-service.md)
+- [ADR 003: bluetoothd Without Its GAP Plugin](decisions/003-no-gap-plugin.md)
