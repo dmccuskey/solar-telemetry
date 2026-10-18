@@ -37,7 +37,9 @@ from solar_telemetry.health import Outcome, Step
 log = logging.getLogger(__name__)
 
 INTERVAL = 300.0  # seconds between readings
-AWAY_INTERVAL = 900.0  # while the car is away
+# While the car is away. A missed cycle is only a scan that finds nothing, so it
+# needn't be rarer than a reading, and the car's return shows up at once.
+AWAY_INTERVAL = 300.0
 # Cycles start this long after each mark of the interval on the clock (:00:15,
 # :05:15, ...), whatever time the service started: a retry then lands in the same
 # 5-minute block as its cycle, and the dashboard shows one reading per block.

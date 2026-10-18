@@ -31,7 +31,7 @@ MODEL_WORDS = recorded_words("system_info", 16)[2:10]  # system_info starts at 0
 
 
 def test_minimal_config_takes_the_defaults():
-    assert parse_config(MINIMAL) == Config("car", ADDRESS, 300.0, 900.0, "http://127.0.0.1:8086", "solar")
+    assert parse_config(MINIMAL) == Config("car", ADDRESS, 300.0, 300.0, "http://127.0.0.1:8086", "solar")
 
 
 def test_full_config():
@@ -273,7 +273,8 @@ def commands(monkeypatch):
 
 @pytest.fixture
 def svc(controller, db, commands):
-    return Service(parse_config(MINIMAL), systemd=FakeSystemd())
+    # An away interval apart from the interval, so the tests can tell them apart.
+    return Service(parse_config({**MINIMAL, "schedule": {"away_interval_s": 900}}), systemd=FakeSystemd())
 
 
 def collector(line: str) -> dict[str, str]:

@@ -28,13 +28,13 @@ journalctl -u solar-telemetry -p warning      # failures and recovery only
 A good reading is one line. Typical lines:
 
 ```text
-INFO solar_telemetry.service: controller garage (AA:BB:CC:DD:EE:FF): every 300 s, every 900 s while away; InfluxDB http://127.0.0.1:8086, database solar; watchdog 180 s
+INFO solar_telemetry.service: controller garage (AA:BB:CC:DD:EE:FF): every 300 s, every 300 s while away; InfluxDB http://127.0.0.1:8086, database solar; watchdog 180 s
 INFO solar_telemetry.service: controller model: RNG-CTRL-WND10
 INFO solar_telemetry.service: battery 13.6 V, 100 %, floating; pv 12 W; connect 1.27 s
 WARNING solar_telemetry.service: connect_failed: disconnected during a read, after 0 bytes; power: ok; next: retry
 INFO solar_telemetry.health: recovery: retry in 5 s
 INFO solar_telemetry.health: recovered after rung 1 (retry)
-INFO solar_telemetry.service: controller not found, other devices in range: the car is probably away; trying every 900 s
+INFO solar_telemetry.service: controller not found, other devices in range: the car is probably away; trying every 300 s
 INFO solar_telemetry.service: controller is back
 ```
 
@@ -71,7 +71,7 @@ Each cycle takes one reading. When it fails, the service classifies the failure,
 
 - **One rung per failed attempt,** from the bottom. A good reading resets the ladder.
 - **BlueZ busy** ("in progress") goes straight to rung 4: restarting BlueZ is the only thing that clears it.
-- **The car being away** is not a failure: no step, and it resets the ladder. The service tries again after the away interval (15 minutes by default) instead of the usual interval.
+- **The car being away** is not a failure: no step, and it resets the ladder. The service tries again after the away interval: by default 5 minutes, the same as the usual interval.
 - **Undervoltage** changes nothing in the ladder, since no Bluetooth reset fixes power. It's logged with every failure, and recorded in `throttled`.
 - **After an exit,** systemd restarts the service after 30 seconds. If it keeps exiting, the delay grows to 30 minutes, and it never stops trying for good.
 - **The watchdog:** if the service stops pinging systemd for 3 minutes (a hang), systemd kills and restarts it.
