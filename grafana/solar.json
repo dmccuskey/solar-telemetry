@@ -521,7 +521,7 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "spanNulls": false,
+            "spanNulls": 660000,
             "showPoints": "never"
           },
           "mappings": [],
@@ -613,7 +613,7 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "spanNulls": false,
+            "spanNulls": 660000,
             "showPoints": "never"
           },
           "mappings": [],
@@ -798,7 +798,7 @@
             "drawStyle": "line",
             "lineWidth": 2,
             "fillOpacity": 0,
-            "spanNulls": false,
+            "spanNulls": 660000,
             "showPoints": "never"
           },
           "mappings": [],
@@ -1270,7 +1270,7 @@
                 "drawStyle": "line",
                 "lineWidth": 2,
                 "fillOpacity": 0,
-                "spanNulls": false,
+                "spanNulls": 660000,
                 "showPoints": "never"
               },
               "mappings": [],
@@ -1334,7 +1334,7 @@
                 "drawStyle": "line",
                 "lineWidth": 2,
                 "fillOpacity": 0,
-                "spanNulls": false,
+                "spanNulls": 660000,
                 "showPoints": "never",
                 "thresholdsStyle": {
                   "mode": "dashed"
@@ -1445,7 +1445,7 @@
                 "drawStyle": "line",
                 "lineWidth": 2,
                 "fillOpacity": 0,
-                "spanNulls": false,
+                "spanNulls": 660000,
                 "showPoints": "never",
                 "lineInterpolation": "stepAfter"
               },
