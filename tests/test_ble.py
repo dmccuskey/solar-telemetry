@@ -20,9 +20,12 @@ class FakeClient:
     """Answers each request with `replies[request]`, a list of chunks sent as
     notifications. A request with no reply gets no answer."""
 
-    def __init__(self, replies: dict[bytes, list[bytes]] | None = None, connect_error=None, disconnect_error=None):
+    def __init__(
+        self, replies: dict[bytes, list[bytes]] | None = None, connect_error=None, disconnect_error=None, redials=False
+    ):
         self.replies = replies or {}
         self.connect_error = connect_error
+        self.redials = redials
         self.disconnect_error = disconnect_error
         self.disconnected_callback = None
         self.notify = None
@@ -32,6 +35,9 @@ class FakeClient:
     async def connect(self):
         if self.connect_error:
             raise self.connect_error
+        if self.redials:
+            # The first link drops at once and bleak connects again, as on BlueZ.
+            self.drop()
 
     async def start_notify(self, uuid, callback):
         assert uuid == ble.NOTIFY_CHAR_UUID
@@ -190,6 +196,18 @@ def test_connect_failure_disconnects(monkeypatch, error):
     with pytest.raises(ble.ConnectFailed):
         asyncio.run(ble.Connection.connect(FakeDevice(ADDRESS)))
     assert client.disconnects == 1
+
+
+def test_a_link_dropped_while_connecting_doesnt_fail_the_reconnected_one(monkeypatch):
+    request, reply = recorded("dynamic_35")
+    client = FakeClient({request: [reply]}, redials=True)
+    patch_client(monkeypatch, client)
+
+    async def connect_and_read():
+        conn = await ble.Connection.connect(FakeDevice(ADDRESS))
+        return await conn.read(255, 0x0100, 35)
+
+    assert len(asyncio.run(connect_and_read())) == 35
 
 
 def test_connect_in_progress_is_bluez_busy(monkeypatch):

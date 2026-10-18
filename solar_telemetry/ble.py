@@ -21,7 +21,7 @@ WRITE_CHAR_UUID = "0000ffd1-0000-1000-8000-00805f9b34fb"
 
 FIND_TIMEOUT = 5.0
 SCAN_TIMEOUT = 5.0
-CONNECT_TIMEOUT = 20.0  # connects take 1.4 to 11 s, depending on the module's advertising
+CONNECT_TIMEOUT = 20.0  # connects take about 1.3 s; 11 s when bluetoothd's GAP plugin slows the link (Installation)
 READ_TIMEOUT = 5.0  # replies came after 0.1 to 0.8 s
 DISCONNECT_SETTLE = 0.3  # lets BlueZ finish tearing down before the next connect
 
@@ -121,6 +121,9 @@ class Connection:
         connection = cls(client)
         try:
             await connection._client.connect()
+            # bleak reconnects by itself when a link drops while connecting, and
+            # still reports that drop: the link it returns with is up.
+            connection._lost = False
             await connection._client.start_notify(NOTIFY_CHAR_UUID, connection._on_notify)
         except (BleakError, asyncio.TimeoutError, EOFError) as e:
             await connection.disconnect()

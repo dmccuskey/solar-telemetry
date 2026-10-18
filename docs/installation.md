@@ -73,7 +73,21 @@ sudo -l -U solar-telemetry
 
 `visudo` prints `parsed OK`, and `sudo -l` lists the four commands.
 
-## 5. Try It
+## 5. Keep Connects Fast
+
+bluetoothd's GAP plugin has the BT module's connections run 10 times slower on every other connect: it applies the module's stored preference of 100 to 200 ms between packets, while the module asks for 10 to 20 ms once it's connected, and the kernel keeps whichever came last for the next connect. Without the plugin, every connect takes about 1.3 s instead of 11 s on every other cycle. Nothing else the plugin reads is needed: the service finds the controller by address.
+
+```bash
+sudo mkdir -p /etc/systemd/system/bluetooth.service.d
+sudo install -m 644 systemd/bluetooth-noplugin-gap.conf /etc/systemd/system/bluetooth.service.d/noplugin-gap.conf
+sudo systemctl daemon-reload
+sudo systemctl restart bluetooth
+journalctl -u bluetooth -b | grep Excluding
+```
+
+The journal shows `Excluding (cli) gap`. The drop-in replaces the unit's `ExecStart`: if your distribution starts bluetoothd from another path (`systemctl cat bluetooth`), change it to match. It affects every Bluetooth device on the Pi, so leave it out if another program there needs the plugin.
+
+## 6. Try It
 
 The controller takes one Bluetooth connection at a time, so stop anything else that reads it first (the earlier collector: `sudo systemctl stop renogy-poll.timer`). Then run the service by hand, as its user:
 
@@ -91,7 +105,7 @@ INFO solar_telemetry.service: battery 13.2 V, 96 %, floating; pv 14 W; connect 1
 
 Stop it with Ctrl-C: it logs `stopped`. If it logs `controller not found, other devices in range`, the controller is out of range or another program holds its connection.
 
-## 6. Install the Service
+## 7. Install the Service
 
 ```bash
 sudo install -m 644 systemd/solar-telemetry.service /etc/systemd/system/
@@ -129,4 +143,4 @@ git pull
 sudo systemctl restart solar-telemetry
 ```
 
-If `systemd/solar-telemetry.service` changed, install it again as in step 6 and run `sudo systemctl daemon-reload` before the restart.
+If `systemd/solar-telemetry.service` changed, install it again as in step 7 and run `sudo systemctl daemon-reload` before the restart.
