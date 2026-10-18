@@ -510,6 +510,17 @@
           },
           "refId": "B",
           "rawQuery": true,
+          "query": "SELECT mean(\"pv_v\") AS \"PV V\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
           "query": "SELECT mean(\"battery_soc_pct\") AS \"SOC\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "alias": "$col"
@@ -594,17 +605,6 @@
           "query": "SELECT mean(\"battery_charge_a\") AS \"Charge A\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "alias": "$col"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "solar"
-          },
-          "refId": "C",
-          "rawQuery": true,
-          "query": "SELECT mean(\"pv_v\") AS \"PV V\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
-          "resultFormat": "time_series",
-          "alias": "$col"
         }
       ],
       "fieldConfig": {
@@ -633,30 +633,6 @@
               {
                 "id": "unit",
                 "value": "amp"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "PV V"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              },
-              {
-                "id": "unit",
-                "value": "volt"
-              },
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": true
-                }
               }
             ]
           }
