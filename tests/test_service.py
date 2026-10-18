@@ -15,6 +15,7 @@ from solar_telemetry.service import Config, ConfigError, Service, Systemd, parse
 from test_fixtures import load_frames
 
 ADDRESS = "AA:BB:CC:DD:EE:FF"
+RSSI = -86
 MINIMAL = {"controller": {"name": "car", "address": ADDRESS}}
 
 
@@ -200,7 +201,7 @@ class Controller:
         error = self.failures.pop(0) if self.failures else None
         if error and not isinstance(error, ble.ConnectFailed):
             raise error
-        return error or "device"
+        return error or "device", RSSI
 
     async def connect(self, device):
         if self.hang:
@@ -295,6 +296,7 @@ def test_a_good_cycle_writes_the_reading_and_its_collector_point(svc, controller
     assert fields["outcome"] == '"ok"'
     assert fields["recovery_step"] == "0i" and fields["throttled"] == "0i" and fields["queued"] == "1i"
     assert {"find_s", "connect_s", "read_s"} <= fields.keys()
+    assert fields["rssi_dbm"] == f"{RSSI}i"
     assert commands == []
     assert not controller.connected
     assert "WATCHDOG=1" in svc.systemd.states
@@ -315,6 +317,7 @@ def test_the_car_away_slows_down_without_recovery(svc, controller, db, commands,
     assert asyncio.run(svc.cycle()) == 900
     assert asyncio.run(svc.cycle()) == 300
     assert outcomes(db) == [('"not_found"', "0i"), ('"not_found"', "0i"), ('"ok"', "0i")]
+    assert ["rssi_dbm" in collector(point) for point in db.points("collector")] == [False, False, True]
     assert commands == []
     assert caplog.text.count("the car is probably away") == 1
     assert caplog.text.count("controller is back") == 1
@@ -326,6 +329,8 @@ def test_failures_climb_the_ladder_within_the_cycle(svc, controller, db, command
     assert outcomes(db) == [
         ('"connect_failed"', "1i"), ('"read_timeout"', "2i"), ('"connect_failed"', "3i"), ('"ok"', "0i"),
     ]
+    connect_failed = [c for c in map(collector, db.points("collector")) if c["outcome"] == '"connect_failed"']
+    assert [c["rssi_dbm"] for c in connect_failed] == [f"{RSSI}i"] * 2  # found, so measured
     assert commands == [health.POWER_OFF, health.POWER_ON]
     assert svc.ladder.rung == 0
     assert len(db.points("charge_controller")) == 1

@@ -9,6 +9,7 @@ import logging
 
 from bleak import BleakClient, BleakScanner
 from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
 from bleak.exc import BleakDBusError, BleakError
 
 from solar_telemetry import modbus
@@ -63,31 +64,41 @@ def _is_busy(error: BaseException) -> bool:
     return isinstance(error, BleakDBusError) and error.dbus_error == BLUEZ_BUSY
 
 
-async def find(address: str) -> BLEDevice:
-    """The controller's device, looked up by MAC address, then by a scan.
+async def find(address: str) -> tuple[BLEDevice, int]:
+    """The controller's device and its signal strength (dBm, from the
+    advertisement that found it), looked up by MAC address, then by a scan.
 
     The scan also catches a device whose advertisement the lookup missed, and
     counts what else is in range for DeviceNotFound. After InProgress there's
     no scan: it would collide with the stuck operation.
     """
+    address = address.upper()
+    found = []
+
+    def wanted(device: BLEDevice, adv: AdvertisementData) -> bool:
+        if device.address.upper() != address:
+            return False
+        found.append(adv.rssi)
+        return True
+
     try:
-        device = await BleakScanner.find_device_by_address(address, timeout=FIND_TIMEOUT)
+        device = await BleakScanner.find_device_by_filter(wanted, timeout=FIND_TIMEOUT)
     except BleakError as e:
         if _is_busy(e):
             raise BluezBusy(str(e)) from e
         raise AdapterError(str(e)) from e
     if device:
-        return device
+        return device, found[-1]
 
     try:
-        devices = await BleakScanner.discover(timeout=SCAN_TIMEOUT)
+        devices = await BleakScanner.discover(timeout=SCAN_TIMEOUT, return_adv=True)
     except BleakError as e:
         if _is_busy(e):
             raise BluezBusy(str(e)) from e
         raise AdapterError(str(e)) from e
-    for device in devices:
-        if device.address.upper() == address.upper():
-            return device
+    for device, adv in devices.values():
+        if device.address.upper() == address:
+            return device, adv.rssi
     raise DeviceNotFound(address, others=len(devices))
 
 

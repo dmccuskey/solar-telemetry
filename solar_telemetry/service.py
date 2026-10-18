@@ -6,9 +6,9 @@ a reading succeeds or the ladder runs out. Then the queue is written to
 InfluxDB, and the service sleeps until the next cycle: the interval, or the
 longer away interval while the car is away.
 
-Every attempt queues a `collector` point (its outcome, timings, the recovery
-step it led to, `get_throttled`, the queue's length); a good one also queues
-its `charge_controller` point. The queue is written once per cycle, never
+Every attempt queues a `collector` point (its outcome, timings, signal
+strength, the recovery step it led to, `get_throttled`, the queue's length); a
+good one also queues its `charge_controller` point. The queue is written once per cycle, never
 alongside a read.
 
 Run by systemd as a `Type=notify` service with `WatchdogSec`: it signals ready
@@ -222,10 +222,10 @@ class Service:
         Returns the seconds from this cycle's start to the next."""
         while True:
             read_at = int(time.time())
-            timings = {}
+            measured = {}
             fields = error = None
             try:
-                fields = await self.read(timings)
+                fields = await self.read(measured)
             except health.FAILURES as e:
                 error = e
                 outcome = health.classify(e)
@@ -239,8 +239,8 @@ class Service:
                 self.writer.add(influx.Point("charge_controller", self.tags, fields, read_at))
             else:
                 step = self.ladder.on_failure(outcome)
-            self._log(outcome, error, step, fields, timings, throttled)
-            self.writer.add(self._collector(read_at, outcome, timings, throttled))
+            self._log(outcome, error, step, fields, measured, throttled)
+            self.writer.add(self._collector(read_at, outcome, measured, throttled))
             self.systemd.ping()
 
             if step is Step.NONE:
@@ -252,17 +252,18 @@ class Service:
         self.systemd.ping()
         return self.config.away_interval if outcome is Outcome.NOT_FOUND else self.config.interval
 
-    async def read(self, timings: dict[str, float]) -> wanderer.Fields:
+    async def read(self, measured: dict[str, float | int]) -> wanderer.Fields:
         """Find, connect, read, disconnect. Puts each step's seconds in
-        `timings` as it completes, under the `collector` field names."""
+        `measured` as it completes, and the signal strength once the
+        controller is found, under the `collector` field names."""
         t = time.monotonic()
 
         def took(name: str) -> None:
             nonlocal t
-            timings[name] = round(time.monotonic() - t, 2)
+            measured[name] = round(time.monotonic() - t, 2)
             t = time.monotonic()
 
-        device = await ble.find(self.config.address)
+        device, measured["rssi_dbm"] = await ble.find(self.config.address)
         took("find_s")
         async with await ble.Connection.connect(device) as connection:
             took("connect_s")
@@ -273,13 +274,13 @@ class Service:
             took("read_s")
         return wanderer.parse_dynamic(words)
 
-    def _collector(self, read_at: int, outcome: Outcome, timings: dict[str, float], throttled: int | None):
-        fields = {"outcome": str(outcome), **timings, "recovery_step": self.ladder.rung, "queued": len(self.writer)}
+    def _collector(self, read_at: int, outcome: Outcome, measured: dict[str, float | int], throttled: int | None):
+        fields = {"outcome": str(outcome), **measured, "recovery_step": self.ladder.rung, "queued": len(self.writer)}
         if throttled is not None:
             fields["throttled"] = throttled
         return influx.Point("collector", self.tags, fields, read_at)
 
-    def _log(self, outcome, error, step, fields, timings, throttled) -> None:
+    def _log(self, outcome, error, step, fields, measured, throttled) -> None:
         """One line per attempt, except while the car stays away: that's
         logged when it goes and when it's back."""
         power = health.describe_throttled(throttled) if throttled else None
@@ -289,8 +290,9 @@ class Service:
                 self.away = False
             state = wanderer.CHARGING_STATES.get(fields["charging_state"], "unknown")
             log.info(
-                "battery %.1f V, %d %%, %s; pv %d W; connect %.2f s",
-                fields["battery_v"], fields["battery_soc_pct"], state, fields["pv_w"], timings["connect_s"],
+                "battery %.1f V, %d %%, %s; pv %d W; signal %d dBm, connect %.2f s",
+                fields["battery_v"], fields["battery_soc_pct"], state, fields["pv_w"], measured["rssi_dbm"],
+                measured["connect_s"],
             )
             if (throttled or 0) != self.throttled:
                 log.warning("power: %s", power or "none")
