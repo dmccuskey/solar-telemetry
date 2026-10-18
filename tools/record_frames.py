@@ -12,6 +12,8 @@ import time
 
 from bleak import BleakClient
 
+from solar_telemetry.modbus import FrameError, crc16, read_request, reply_length
+
 ADDRESS = sys.argv[1]
 DEVICE_ID = int(sys.argv[2]) if len(sys.argv) > 2 else 255
 
@@ -33,26 +35,12 @@ READS = [
 ]
 
 
-def crc16_modbus(data: bytes) -> bytes:
-    crc = 0xFFFF
-    for byte in data:
-        crc ^= byte
-        for _ in range(8):
-            crc = (crc >> 1) ^ 0xA001 if crc & 1 else crc >> 1
-    return crc.to_bytes(2, "little")
-
-
-def read_request(device_id: int, register: int, words: int) -> bytes:
+def request(device_id: int, register: int, words: int) -> bytes:
+    """A read request, built by hand for the over-long read that read_request refuses."""
+    if words <= 125:
+        return read_request(device_id, register, words)
     pdu = bytes([device_id, 0x03]) + register.to_bytes(2, "big") + words.to_bytes(2, "big")
-    return pdu + crc16_modbus(pdu)
-
-
-def expected_length(buf: bytes) -> int | None:
-    if len(buf) < 3:
-        return None
-    if buf[1] & 0x80:
-        return 5  # address, error code, exception code, CRC
-    return 3 + buf[2] + 2
+    return pdu + crc16(pdu)
 
 
 async def main():
@@ -67,9 +55,9 @@ async def main():
         await client.start_notify(NOTIFY_CHAR_UUID, on_notify)
         for name, register, words in READS:
             chunks.clear()
-            request = read_request(DEVICE_ID, register, words)
+            frame = request(DEVICE_ID, register, words)
             sent = time.monotonic()
-            await client.write_gatt_char(WRITE_CHAR_UUID, request, response=False)
+            await client.write_gatt_char(WRITE_CHAR_UUID, frame, response=False)
 
             reply = b""
             while time.monotonic() - sent < REPLY_TIMEOUT:
@@ -81,16 +69,19 @@ async def main():
                         break
                     continue
                 reply = b"".join(c for _, c in chunks)
-                n = expected_length(reply)
+                try:
+                    n = reply_length(reply, DEVICE_ID)
+                except FrameError:
+                    n = None  # not Modbus: record it all, until the chunk gap
                 if n is not None and len(reply) >= n:
                     break
 
             print(json.dumps({
                 "name": name,
-                "request": request.hex(),
+                "request": frame.hex(),
                 "reply": reply.hex(),
                 "chunks": [{"ms": round((t - sent) * 1000), "hex": c.hex()} for t, c in chunks],
-                "crc_ok": len(reply) >= 4 and crc16_modbus(reply[:-2]) == reply[-2:],
+                "crc_ok": len(reply) >= 4 and crc16(reply[:-2]) == reply[-2:],
             }), flush=True)
             await asyncio.sleep(0.5)
 
