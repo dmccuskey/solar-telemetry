@@ -82,40 +82,51 @@ def read(conn: ble.Connection, register: int, words: int):
 # find
 
 
-def patch_scanner(monkeypatch, found=None, scanned=(), find_error=None, scan_error=None):
+class FakeAdvertisement:
+    def __init__(self, rssi: int):
+        self.rssi = rssi
+
+
+def patch_scanner(monkeypatch, advertised=(), scanned=(), find_error=None, scan_error=None):
+    """`advertised`, what the lookup by address hears, and `scanned`, what the
+    fallback scan sees: (device, rssi) pairs."""
     scans = []
 
-    async def find_device_by_address(address, timeout):
+    async def find_device_by_filter(filterfunc, timeout):
         if find_error:
             raise find_error
-        return found
+        for device, rssi in advertised:
+            if filterfunc(device, FakeAdvertisement(rssi)):
+                return device
+        return None
 
-    async def discover(timeout):
+    async def discover(timeout, return_adv):
+        assert return_adv is True
         scans.append(timeout)
         if scan_error:
             raise scan_error
-        return list(scanned)
+        return {device.address: (device, FakeAdvertisement(rssi)) for device, rssi in scanned}
 
-    monkeypatch.setattr(ble.BleakScanner, "find_device_by_address", find_device_by_address)
+    monkeypatch.setattr(ble.BleakScanner, "find_device_by_filter", find_device_by_filter)
     monkeypatch.setattr(ble.BleakScanner, "discover", discover)
     return scans
 
 
 def test_find_by_address_needs_no_scan(monkeypatch):
     device = FakeDevice(ADDRESS)
-    scans = patch_scanner(monkeypatch, found=device)
-    assert asyncio.run(ble.find(ADDRESS)) is device
+    scans = patch_scanner(monkeypatch, advertised=[(FakeDevice("11:22:33:44:55:66"), -50), (device, -86)])
+    assert asyncio.run(ble.find(ADDRESS)) == (device, -86)
     assert scans == []
 
 
 def test_find_falls_back_to_a_scan(monkeypatch):
     device = FakeDevice(ADDRESS.lower())
-    patch_scanner(monkeypatch, scanned=[FakeDevice("11:22:33:44:55:66"), device])
-    assert asyncio.run(ble.find(ADDRESS)) is device
+    patch_scanner(monkeypatch, scanned=[(FakeDevice("11:22:33:44:55:66"), -50), (device, -90)])
+    assert asyncio.run(ble.find(ADDRESS)) == (device, -90)
 
 
 def test_not_found_counts_the_other_devices(monkeypatch):
-    patch_scanner(monkeypatch, scanned=[FakeDevice("11:22:33:44:55:66"), FakeDevice("22:33:44:55:66:77")])
+    patch_scanner(monkeypatch, scanned=[(FakeDevice("11:22:33:44:55:66"), -50), (FakeDevice("22:33:44:55:66:77"), -70)])
     with pytest.raises(ble.DeviceNotFound) as e:
         asyncio.run(ble.find(ADDRESS))
     assert e.value.others == 2
