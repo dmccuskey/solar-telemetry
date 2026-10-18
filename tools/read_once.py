@@ -1,10 +1,10 @@
 """Take one reading with the service's own client and parser, and print it.
 
 Read-only: finds the controller, connects, reads the model and the live block,
-disconnects. Prints how long each step took, then the tags and fields. A
+disconnects. Prints how long each step took, the model, then the fields. A
 failure prints the client's error type, which is what the service will act on.
 
-Usage: read_once.py <controller MAC address> [device tag, default "test"]
+Usage: read_once.py <controller MAC address>
 """
 import asyncio
 import logging
@@ -14,7 +14,6 @@ import time
 from solar_telemetry import ble, wanderer
 
 ADDRESS = sys.argv[1]
-DEVICE = sys.argv[2] if len(sys.argv) > 2 else "test"
 
 
 async def main() -> int:
@@ -38,9 +37,10 @@ async def main() -> int:
         print(f"failed: {type(e).__name__}: {e}")
         return 1
 
-    reading = wanderer.parse_reading(model, dynamic, DEVICE)
-    print(reading.tags)
-    for name, value in reading.fields.items():
+    fields = wanderer.parse_dynamic(dynamic)
+    state = wanderer.CHARGING_STATES.get(fields["charging_state"], "unknown")
+    print(f"{wanderer.parse_model(model)}, {state}")
+    for name, value in fields.items():
         print(f"  {name} = {value}")
     return 0
 
