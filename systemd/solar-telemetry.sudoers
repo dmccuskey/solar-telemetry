@@ -1,0 +1,9 @@
+# The root commands solar-telemetry's recovery runs, with `sudo -n` (ADR 002).
+# Install as /etc/sudoers.d/solar-telemetry, mode 0440, and check it with
+# `sudo visudo -cf /etc/sudoers.d/solar-telemetry`.
+#
+# With arguments given, sudo allows exactly these command lines and no others.
+solar-telemetry ALL=(root) NOPASSWD: /usr/bin/bluetoothctl power off, \
+                                     /usr/bin/bluetoothctl power on, \
+                                     /usr/bin/systemctl restart bluetooth, \
+                                     /usr/bin/systemctl restart influxdb
