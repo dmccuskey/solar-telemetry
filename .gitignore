@@ -1,0 +1,3 @@
+# local config: holds the controller's MAC address
+my_wanderer.ini
+__pycache__/
