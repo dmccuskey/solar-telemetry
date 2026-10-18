@@ -9,10 +9,10 @@ Renogy Wanderer ── BT-1 module ──BLE──▶ Raspberry Pi
                                          ├── solar-telemetry (systemd service)
                                          │     ble ▶ wanderer ▶ influx queue ▶ InfluxDB writer
                                          │       ╰─ health: classify, recover
-                                         └── InfluxDB 1.x ◀── Grafana (another machine)
+                                         └── InfluxDB 1.x ◀── Grafana (here, or another machine)
 ```
 
-The service runs on a Raspberry Pi within Bluetooth range of the charge controller. Every 5 minutes it connects, reads the controller's registers, disconnects, and writes a point to a local InfluxDB. Grafana, on another machine, queries that InfluxDB.
+The service runs on a Raspberry Pi within Bluetooth range of the charge controller. Every 5 minutes it connects, reads the controller's registers, disconnects, and writes a point to a local InfluxDB. Grafana, on the same machine or another, queries that InfluxDB ([ADR 004](decisions/004-one-machine.md)).
 
 ## Structure
 
@@ -62,10 +62,21 @@ Scripts in `tools/` for working on the client, run with the package installed:
 
 ## Design History
 
-The collector started as a systemd timer running a script, which ran [renogy-bt](https://github.com/cyrils/renogy-bt)'s `example.py` as a subprocess and parsed its output. Recovery was a Bluetooth power cycle inside the script, plus a manual `reboot-the-world.sh`. Running it that way for most of 2026 taught us which failures happen and which fixes work for each, and that the car being away has to be told apart from a broken Bluetooth stack. The service replaced it in October 2026; the earlier collector's files stay in this repository until it's retired.
+The collector started as a systemd timer running a script, which ran [renogy-bt](https://github.com/cyrils/renogy-bt)'s `example.py` as a subprocess and parsed its output. Running it that way for most of 2026 taught us which failures happen and which fixes work for each:
+
+- **January 16:** the first readings, through `renogy-bt`, written to InfluxDB on the Pi and graphed by Grafana on another machine ([ADR 004](decisions/004-one-machine.md)). The script ran every 5 minutes from a timer.
+- **January 16 to 17:** the first failures: reads that timed out until Bluetooth was reset. The script got retries, with a `bluetoothctl power off/on` between them.
+- **January 18:** finding the controller by its MAC address first, instead of always scanning, cut a run from 27 s to 17 s. A local change to `renogy-bt`.
+- **January 19:** `renogy-bt`'s disconnect raised `EOFError` during teardown, after readings in quick succession; another local change caught it. The run times were seen to alternate, about 20 s and 10 s, a pattern only explained in October ([ADR 003](decisions/003-no-gap-plugin.md)).
+- **February 2:** `org.bluez.Error.InProgress`, a discovery BlueZ thought was still running. The power cycle didn't clear it; restarting `bluetooth.service` did.
+- **April 25:** `reboot-the-world.sh`, the full manual recovery: stop the timer, kill leftover processes, restart `bluetooth` (and `dbus` with `--nuclear`), bounce `hci0`, poll once.
+- **May 3:** less stable after the Pi was moved, so recovery should act sooner and harder. But the script couldn't restart the Bluetooth stack without risking its own run, and had one chance every 5 minutes.
+- **May 8:** the controller being away and a broken Bluetooth stack gave the same errors. Telling them apart by whether a scan sees other devices, and a long-running service with its own recovery, were the ideas that became [ADR 002](decisions/002-long-running-service.md).
+- **October 17:** the rewrite: the long-running service, with its own Bluetooth client ([ADR 001](decisions/001-own-ble-client.md)), replaced the timer. The earlier collector's files stay in this repository until it's retired.
 
 ## Decisions
 
 - [ADR 001: Our Own BLE Client, Not renogy-bt](decisions/001-own-ble-client.md)
 - [ADR 002: A Long-Running Service with In-Process Recovery](decisions/002-long-running-service.md)
 - [ADR 003: bluetoothd Without Its GAP Plugin](decisions/003-no-gap-plugin.md)
+- [ADR 004: InfluxDB Beside the Collector, Grafana Best on the Same Machine](decisions/004-one-machine.md)

@@ -12,6 +12,70 @@ The [Quick Start](../README.md#quick-start) is the short version of this page.
 
 The service creates its database (`solar` by default) on its first write.
 
+One machine can run all of it, Grafana too: a Pi 4 or bigger. On a Pi 3, keep Grafana on another machine. The reasons are in [ADR 004](decisions/004-one-machine.md).
+
+## Prepare the Pi
+
+A Pi that collects on its own, often out of sight, needs a reliable network, a working watchdog and a good power supply. Check these once, before installing.
+
+### Power
+
+On a Pi 3, a weak power supply shows up as Bluetooth failures. `vcgencmd get_throttled` should say `throttled=0x0`, with the Pi under load: see [Hardware: Power](hardware.md#power) for which supplies did and didn't.
+
+### Wi-Fi That Stays On
+
+On a fresh Raspberry Pi OS, Wi-Fi can come up blocked after every reboot (`rfkill list` shows `Wireless LAN` as `Soft blocked: yes`), even after `rfkill unblock wifi`. NetworkManager keeps its own radio state, `WirelessEnabled=false` in `/var/lib/NetworkManager/NetworkManager.state`, and blocks the radio again at start. Turn it on through NetworkManager, which saves the state:
+
+```bash
+sudo nmcli radio wifi on
+```
+
+After a reboot, `nmcli radio all` shows `WIFI` as `enabled`, and `rfkill list` shows no soft block. A service that runs `rfkill unblock` at boot isn't needed.
+
+### Wi-Fi Settings
+
+- **Power saving off:** with it on, a Pi on Wi-Fi can stay up but stop answering. Set it on the Pi's Wi-Fi connection (`nmcli connection show` lists them) and bring the connection up again:
+
+  ```bash
+  sudo nmcli connection modify "My Network" 802-11-wireless.powersave disable
+  sudo nmcli connection up "My Network"
+  nmcli -g 802-11-wireless.powersave connection show "My Network"    # disable
+  ```
+
+- **A network that passes broadcasts:** some IoT and guest networks drop ARP broadcasts between devices. The Pi then runs and reaches the router, but other machines, such as one running Grafana, get "No route to host". Put it on the main network.
+- **2.4 GHz only on a Pi 3:** it has no 5 GHz radio, so it needs a network with a 2.4 GHz band.
+- **A way back:** with one saved Wi-Fi network and no other, changing the router's password strands the Pi. Change the Pi's saved password first (`sudo nmcli connection modify "My Network" wifi-sec.psk "new password"`), or keep an Ethernet cable at hand: the wired connection comes up by itself.
+
+### The Hardware Watchdog
+
+The Pi's hardware watchdog reboots it if the system hangs. Raspberry Pi OS turns it on (`/usr/lib/systemd/system.conf.d/40-rpi-enable-watchdog.conf`). Check it:
+
+```bash
+systemctl show -p RuntimeWatchdogUSec    # RuntimeWatchdogUSec=1min
+```
+
+If it says `0` or `infinity`, turn it on with a drop-in, then reboot:
+
+```bash
+sudo mkdir -p /etc/systemd/system.conf.d
+printf '[Manager]\nRuntimeWatchdogSec=1min\n' | sudo tee /etc/systemd/system.conf.d/watchdog.conf
+sudo reboot
+```
+
+### The Network Watchdog
+
+Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it restarts `wlan0`, and if the network is still down, it reboots the Pi. It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above). Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
+
+```bash
+cd /opt/solar-telemetry
+sudo install -m 755 scripts/network-watchdog.sh /usr/local/bin/
+sudo install -m 644 systemd/network-watchdog.service systemd/network-watchdog.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now network-watchdog.timer
+```
+
+Its log lines are in `journalctl -t network-watchdog`.
+
 ## 1. Create the Service User
 
 The service runs as `solar-telemetry`, a system user with no login and no home. The `video` group lets it read `vcgencmd get_throttled`:
