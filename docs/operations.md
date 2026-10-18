@@ -91,10 +91,10 @@ InfluxDB runs on the same Pi. When a write fails, the points stay in a queue in 
 
 Check, in this order:
 
-1. **Power:** `vcgencmd get_throttled`. Anything but `throttled=0x0` is undervoltage or heat. On a Pi 3, a weak USB supply shows up as dropped connections and failed reads, and no Bluetooth reset fixes it: change the supply. A quiet `journalctl -k | grep -i voltage` doesn't prove the voltage is fine.
+1. **Power:** `vcgencmd get_throttled`. Anything but `throttled=0x0` is undervoltage or heat. On a Pi 3, a weak USB supply shows up as dropped connections and failed reads, and no Bluetooth reset fixes it: change the supply ([Hardware: Power](hardware.md#power)). A quiet `journalctl -k | grep -i voltage` doesn't prove the voltage is fine.
 2. **The service:** `systemctl status solar-telemetry`. If it's restarting over and over, the journal says why.
 3. **The journal:** `journalctl -u solar-telemetry -p warning --since today` lists each failed attempt with its outcome and the step it led to.
-4. **Range:** `not_found` with other devices in range means the controller isn't advertising where the Pi can hear it: the car is away, the controller has no power, or the phone app holds the connection. `adapter_error` (no devices at all) points at the Pi's adapter: `bluetoothctl show` should say `Powered: yes`.
+4. **Range:** `not_found` with other devices in range means the controller isn't advertising where the Pi can hear it: the car is away, the controller has no power, or the phone app holds the connection. Failures that come and go, with `rssi_dbm` near -90 or below, point at a weak signal: see [Hardware: The Signal](hardware.md#the-signal). `adapter_error` (no devices at all) points at the Pi's adapter: `bluetoothctl show` should say `Powered: yes`.
 5. **Slow connects:** `connect_s` of about 11 s on every other cycle (and about 1.3 s between) means bluetoothd runs with its GAP plugin: see [Installation](installation.md#5-keep-connects-fast).
 6. **InfluxDB:** `systemctl status influxdb`, and `queued` in the latest `collector` points: anything above 0 means writes are failing.
 
