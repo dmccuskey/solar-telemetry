@@ -1,6 +1,6 @@
 # ADR 002: A Long-Running Service with In-Process Recovery
 
-**Status:** Accepted
+**Status:** Accepted; amended 2026-10-17 (see [Amendment: The Ladder in Detail](#amendment-2026-10-17-the-ladder-in-detail))
 
 ## Context
 
@@ -27,8 +27,8 @@ The collector becomes one long-running Python process (asyncio), run by systemd 
   - **Adapter dead:** a scan sees nothing at all, or errors. Escalate.
   - **Undervoltage:** `get_throttled` isn't `0x0`. Log it with every failure, since resets won't fix power.
 - **The recovery ladder** climbs one step at a time, with a wait after each and a reset back to the bottom after a good reading: retry; power-cycle the controller (`bluetoothctl power off/on`); restart `bluetooth.service`; exit with an error and let systemd restart the service. Restarting `dbus` and rebooting the Pi stay manual.
-- **When InfluxDB is down,** readings wait in a bounded queue in memory (about a week of readings at the default interval) and are written, with their original timestamps, once it's back. If writes keep failing, the service restarts InfluxDB (`influxd.service`) once. When the queue is full, the oldest readings are dropped and the drop is logged.
-- **Privileges:** the service runs as an unprivileged user. The few commands it needs as root (`bluetoothctl`, `systemctl restart bluetooth` and `influxd`) are allowed by name in a sudoers file.
+- **When InfluxDB is down,** readings wait in a bounded queue in memory (about a week of readings at the default interval) and are written, with their original timestamps, once it's back. If writes keep failing, the service restarts InfluxDB (`influxdb.service`) once. When the queue is full, the oldest readings are dropped and the drop is logged.
+- **Privileges:** the service runs as an unprivileged user. The few commands it needs as root (`bluetoothctl`, `systemctl restart bluetooth` and `systemctl restart influxdb`) are allowed by name in a sudoers file.
 
 ## Consequences
 
@@ -39,3 +39,15 @@ The collector becomes one long-running Python process (asyncio), run by systemd 
 - Readings survive an InfluxDB outage, but not a restart of the service itself: the queue is in memory only.
 - The service holds state, so it needs care about leaks and runaway loops, and its logs matter more: each state change and recovery step is logged.
 - The sudoers rule is part of installation and has to be documented.
+
+## Amendment 2026-10-17: The Ladder in Detail
+
+Settled while building the `health` module.
+
+- **"The controller" in the ladder means the Pi's Bluetooth adapter** (`hci0`, which BlueZ calls the controller), not the charge controller. `bluetoothctl power off/on` power-cycles the adapter; nothing in recovery touches the charge controller. The code calls the step "power-cycle the adapter".
+- **The ladder retries twice:** retry, retry, power-cycle the adapter, restart `bluetooth.service`, exit. A failed retry costs up to a connect timeout, so the bottom of the ladder can take about a minute.
+- **The car being away resets the ladder,** besides taking no step: a scan that sees other devices shows the adapter works, so the controller coming back starts a fresh climb.
+- **BlueZ busy skips the rungs below restarting `bluetooth.service`,** since that's the only fix for a stuck `InProgress`. An adapter error climbs one rung at a time, like the other failures.
+- **Undervoltage changes nothing in the ladder.** It's logged with each failure, as decided above.
+- **The adapter power cycle stays as a precaution.** It was the old poller's fix, at a time when the disconnect left BlueZ in a bad state (an `EOFError` on teardown); the new client disconnects cleanly, so the step may never be needed. The `collector` measurement's `recovery_step` shows how often each rung runs and which one fixed a failure.
+- **Power on can fail right after power off** (`org.bluez.Error.Failed`, seen on the Pi), which would leave the adapter off. The step waits a second before powering on, and tries again if it fails.

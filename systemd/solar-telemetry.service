@@ -1,0 +1,39 @@
+[Unit]
+Description=Read the solar charge controller over Bluetooth LE and write to InfluxDB
+Documentation=https://github.com/dmccuskey/solar-telemetry/blob/main/docs/installation.md
+After=bluetooth.service influxdb.service
+Wants=bluetooth.service
+# No start limit: a dead adapter makes the service exit after its recovery
+# ladder, and systemd must keep restarting it rather than give up. The restart
+# delay below backs off instead.
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=solar-telemetry
+Group=solar-telemetry
+# vcgencmd get_throttled needs /dev/vchiq. BlueZ needs no group: its D-Bus
+# policy lets any user talk to it.
+SupplementaryGroups=video
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/solar-telemetry/.venv/bin/solar-telemetry /etc/solar-telemetry/config.toml
+
+# Longer than the longest stretch between pings: a recovery step, or writing a
+# full queue to a hanging InfluxDB (about 80 s).
+WatchdogSec=3min
+# A stop cancels the reading in progress, then writes the queue (at most 15 s).
+TimeoutStopSec=30s
+Restart=always
+# 30 s after the first failure, growing to 30 minutes over 5 restarts.
+RestartSec=30s
+RestartSteps=5
+RestartMaxDelaySec=30min
+
+# The recovery commands go through sudo, so no NoNewPrivileges: sudo is setuid.
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

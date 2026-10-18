@@ -1,0 +1,15 @@
+# The service's config. Copy it to config.toml (kept out of git: it holds the
+# controller's MAC address) and run: solar-telemetry config.toml
+
+[controller]
+name = "car"                   # the `controller` tag on every point
+address = "AA:BB:CC:DD:EE:FF"  # the BT module's MAC address: tools/scan_ble.py finds it
+
+# Optional: the defaults are shown.
+[schedule]
+interval_s = 300               # between readings
+away_interval_s = 900          # between tries while the car is away
+
+[influxdb]
+url = "http://127.0.0.1:8086"
+database = "solar"             # created on the first write if missing
