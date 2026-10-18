@@ -18,7 +18,7 @@ TimeoutStartFailureMode=kill
 
 # Prevent overlapping runs (important)
 ExecStart=/usr/bin/flock -n /tmp/renogy-poll.lock \
-  /usr/bin/env PYTHONUNBUFFERED=1 python3 -u /home/pi/renogy_poll_to_influx.py
+  /usr/bin/env PYTHONUNBUFFERED=1 python3 -u /home/pi/solar-telemetry/renogy_poll_to_influx.py
 
 [Install]
 WantedBy=multi-user.target

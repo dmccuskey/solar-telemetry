@@ -6,7 +6,7 @@ echo "🌍 Rebooting the Bluetooth universe..."
 # --- Config ---
 TIMER="renogy-poll.timer"
 SERVICE="renogy-poll.service"
-POLL_SCRIPT="/home/pi/renogy_poll_to_influx.py"
+POLL_SCRIPT="/home/pi/solar-telemetry/renogy_poll_to_influx.py"
 
 NUCLEAR=false
 
