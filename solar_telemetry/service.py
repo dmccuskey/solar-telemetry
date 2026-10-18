@@ -3,8 +3,8 @@
 Each cycle takes one reading. A failed reading is classified, and anything but
 the car being away climbs the recovery ladder and tries again at once, until
 a reading succeeds or the ladder runs out. Then the queue is written to
-InfluxDB, and the service sleeps until the next cycle: the interval, or the
-longer away interval while the car is away.
+InfluxDB, and the service sleeps until the next cycle: the next mark of the
+interval on the clock, or of the longer away interval while the car is away.
 
 Every attempt queues a `collector` point (its outcome, timings, signal
 strength, the recovery step it led to, `get_throttled`, the queue's length); a
@@ -38,6 +38,10 @@ log = logging.getLogger(__name__)
 
 INTERVAL = 300.0  # seconds between readings
 AWAY_INTERVAL = 900.0  # while the car is away
+# Cycles start this long after each mark of the interval on the clock (:00:15,
+# :05:15, ...), whatever time the service started: a retry then lands in the same
+# 5-minute block as its cycle, and the dashboard shows one reading per block.
+MARK_OFFSET = 15.0
 STOP_FLUSH_TIMEOUT = 15.0  # for the last write, on the way out
 
 MAC_ADDRESS = re.compile(r"[0-9A-F]{2}(:[0-9A-F]{2}){5}", re.IGNORECASE)
@@ -174,6 +178,13 @@ def to_journal(stream=sys.stderr, environ=os.environ) -> bool:
 # The service
 
 
+def until_next_mark(now: float, interval: float) -> float:
+    """Seconds from `now` (Unix time) to the next mark of `interval` on the
+    clock, plus MARK_OFFSET."""
+    mark = (now - MARK_OFFSET) // interval * interval + interval
+    return mark + MARK_OFFSET - now
+
+
 class Service:
     def __init__(self, config: Config, writer: influx.Writer | None = None, systemd: Systemd | None = None):
         self.config = config
@@ -202,7 +213,6 @@ class Service:
         self.systemd.notify("READY=1")
         try:
             while not self._stop.is_set():
-                started = time.monotonic()
                 cycle = asyncio.ensure_future(self.cycle())
                 stopped = asyncio.ensure_future(self._stop.wait())
                 await asyncio.wait({cycle, stopped}, return_when=asyncio.FIRST_COMPLETED)
@@ -211,7 +221,7 @@ class Service:
                     cycle.cancel()
                     await asyncio.gather(cycle, return_exceptions=True)
                     break
-                await self._sleep(started + cycle.result() - time.monotonic())
+                await self._sleep(until_next_mark(time.time(), cycle.result()))
         finally:
             self.systemd.notify("STOPPING=1")
             await self._last_flush()
@@ -219,7 +229,8 @@ class Service:
     async def cycle(self) -> float:
         """One reading, recovering until it succeeds, the car is away, or the
         ladder runs out (RecoveryExhausted). Then the queue is written.
-        Returns the seconds from this cycle's start to the next."""
+        Returns the interval to the next cycle."""
+        backlog = len(self.writer)  # what earlier cycles couldn't write
         while True:
             read_at = int(time.time())
             measured = {}
@@ -240,7 +251,7 @@ class Service:
             else:
                 step = self.ladder.on_failure(outcome)
             self._log(outcome, error, step, fields, measured, throttled)
-            self.writer.add(self._collector(read_at, outcome, measured, throttled))
+            self.writer.add(self._collector(read_at, outcome, measured, throttled, backlog))
             self.systemd.ping()
 
             if step is Step.NONE:
@@ -274,8 +285,10 @@ class Service:
             took("read_s")
         return wanderer.parse_dynamic(words)
 
-    def _collector(self, read_at: int, outcome: Outcome, measured: dict[str, float | int], throttled: int | None):
-        fields = {"outcome": str(outcome), **measured, "recovery_step": self.ladder.rung, "queued": len(self.writer)}
+    def _collector(
+        self, read_at: int, outcome: Outcome, measured: dict[str, float | int], throttled: int | None, backlog: int
+    ):
+        fields = {"outcome": str(outcome), **measured, "recovery_step": self.ladder.rung, "queued": backlog}
         if throttled is not None:
             fields["throttled"] = throttled
         return influx.Point("collector", self.tags, fields, read_at)

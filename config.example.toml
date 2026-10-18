@@ -7,7 +7,7 @@ address = "AA:BB:CC:DD:EE:FF"  # the BT module's MAC address: tools/scan_ble.py 
 
 # Optional: the defaults are shown.
 [schedule]
-interval_s = 300               # between readings
+interval_s = 300               # between readings, at its marks on the clock (:00:15, :05:15, ...)
 away_interval_s = 900          # between tries while the car is away
 
 [influxdb]

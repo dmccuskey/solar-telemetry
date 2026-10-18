@@ -77,7 +77,7 @@ One point per attempt to read the controller, whether it worked or not. A cycle 
 | `read_s` | float | seconds to read the registers (the first reading after a start also reads the model) |
 | `recovery_step` | int | the recovery step this attempt's failure led to: 0 none, 1 and 2 retry, 3 power-cycle the Bluetooth adapter, 4 restart `bluetooth.service`, 5 exit |
 | `throttled` | int | `vcgencmd get_throttled`: 0 is fine; anything else is undervoltage or heat. Missing where it can't be read |
-| `queued` | int | points waiting to be written to InfluxDB when this one was made: the attempt's own reading, if it got one, but not this point. The queue is written at the end of each cycle, so while writes work it's 1 after a good attempt and 0 after a failed one; it counts up within a cycle that recovers, and keeps climbing while InfluxDB is down |
+| `queued` | int | points earlier cycles couldn't write to InfluxDB, still queued when this cycle began. 0 while writes work; it climbs while InfluxDB is down, and the cycle after it's back is the last to show it |
 
 The timings are there only for the steps that finished: a failed connect has `find_s` and `rssi_dbm`, and no `connect_s`.
 
