@@ -84,10 +84,12 @@ INFO solar_telemetry.service: battery 13.6 V, 100 %, floating; pv 12 W; connect 
 
 ### 4. Run it as a service
 
-Allow the recovery commands, then install and start the unit:
+Allow the recovery commands, start bluetoothd without its GAP plugin (it makes every other connect 10 times slower), then install and start the unit:
 
 ```bash
 sudo install -m 440 systemd/solar-telemetry.sudoers /etc/sudoers.d/solar-telemetry
+sudo install -D -m 644 systemd/bluetooth-noplugin-gap.conf /etc/systemd/system/bluetooth.service.d/noplugin-gap.conf
+sudo systemctl daemon-reload && sudo systemctl restart bluetooth
 sudo install -m 644 systemd/solar-telemetry.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now solar-telemetry

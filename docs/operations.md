@@ -95,7 +95,8 @@ Check, in this order:
 2. **The service:** `systemctl status solar-telemetry`. If it's restarting over and over, the journal says why.
 3. **The journal:** `journalctl -u solar-telemetry -p warning --since today` lists each failed attempt with its outcome and the step it led to.
 4. **Range:** `not_found` with other devices in range means the controller isn't advertising where the Pi can hear it: the car is away, the controller has no power, or the phone app holds the connection. `adapter_error` (no devices at all) points at the Pi's adapter: `bluetoothctl show` should say `Powered: yes`.
-5. **InfluxDB:** `systemctl status influxdb`, and `queued` in the latest `collector` points: a growing number means writes are failing.
+5. **Slow connects:** `connect_s` of about 11 s on every other cycle (and about 1.3 s between) means bluetoothd runs with its GAP plugin: see [Installation](installation.md#5-keep-connects-fast).
+6. **InfluxDB:** `systemctl status influxdb`, and `queued` in the latest `collector` points: a growing number means writes are failing.
 
 To take a reading by hand, stop the service (one connection at a time), then run `tools/read_once.py` with the controller's MAC address: it prints each step's timing, or the error the service would act on.
 

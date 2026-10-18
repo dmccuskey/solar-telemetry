@@ -4,7 +4,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 
 ## Start
 
-- [Installation](installation.md): the full setup on a Raspberry Pi, under its own user, with its sudoers file and systemd unit; switching from the earlier timer, and updating
+- [Installation](installation.md): the full setup on a Raspberry Pi, under its own user, with its sudoers file, Bluetooth drop-in and systemd unit; switching from the earlier timer, and updating
 
 ## Use
 
@@ -30,6 +30,7 @@ tests/                      pytest, no radio needed
 systemd/
 ├── solar-telemetry.service the service's unit
 ├── solar-telemetry.sudoers the root commands its recovery may run, for /etc/sudoers.d
+├── bluetooth-noplugin-gap.conf  a drop-in for bluetooth.service: bluetoothd without its GAP plugin, for fast connects
 ├── network-watchdog.service  optional: restarts Wi-Fi, reboots if the network stays down
 ├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
 ├── renogy-poll.service     the earlier collector, run once (oneshot, under flock)
