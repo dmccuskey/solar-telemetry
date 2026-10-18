@@ -2,12 +2,16 @@
 
 A failed reading is classified by its error before anything is reset. The car
 being away is not a failure: it resets nothing. Anything else climbs the
-ladder one step per consecutive failure, with a wait after each step: retry,
-power-cycle the Bluetooth controller, restart bluetooth.service, and last,
-exit and let systemd restart the service. A good reading resets the ladder.
+ladder one rung per consecutive failure, with a wait after each step: retry
+twice, power-cycle the Pi's Bluetooth adapter, restart bluetooth.service, and
+last, exit and let systemd restart the service. A good reading resets the
+ladder.
 
-The outcomes are the `collector` measurement's `outcome` values, and the steps
-its `recovery_step`. The root commands run through `sudo -n`, allowed by name
+"Adapter" is the Pi's own Bluetooth radio (hci0), which BlueZ calls the
+controller. Nothing here touches the charge controller.
+
+The outcomes are the `collector` measurement's `outcome` values, and the rungs
+(1 to 5, 0 for none) its `recovery_step`. The root commands run through `sudo -n`, allowed by name
 in a sudoers file.
 """
 import asyncio
@@ -19,7 +23,8 @@ from solar_telemetry import ble, modbus
 log = logging.getLogger(__name__)
 
 RETRY_WAIT = 5.0
-POWER_OFF_WAIT = 1.0  # between power off and power on
+POWER_OFF_WAIT = 1.0  # between power off and power on; at once, power on fails
+POWER_ON_TRIES = 3  # a failed power on would leave the adapter off
 POWER_CYCLE_SETTLE = 3.0  # BlueZ needs a moment after power on
 BLUEZ_RESTART_SETTLE = 3.0
 COMMAND_TIMEOUT = 30.0
@@ -44,12 +49,16 @@ class Outcome(enum.StrEnum):
     ADAPTER_ERROR = "adapter_error"  # the scan failed, or saw nothing at all
 
 
-class Step(enum.IntEnum):
-    NONE = 0
-    RETRY = 1
-    POWER_CYCLE = 2
-    RESTART_BLUEZ = 3
-    EXIT = 4
+class Step(enum.StrEnum):
+    NONE = "none"
+    RETRY = "retry"
+    POWER_CYCLE_ADAPTER = "power_cycle_adapter"
+    RESTART_BLUEZ = "restart_bluez"
+    EXIT = "exit"
+
+
+# The ladder, bottom first. A rung is its position from 1; 0 is none.
+LADDER = (Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.EXIT)
 
 
 class RecoveryExhausted(Exception):
@@ -77,15 +86,19 @@ def classify(error: BaseException) -> Outcome:
 
 
 class Ladder:
-    """Which recovery step comes next. Each step runs at most once per climb."""
+    """Which recovery step comes next. Each rung is taken at most once per climb."""
 
     def __init__(self):
-        self.step = Step.NONE
+        self.rung = 0
+
+    @property
+    def step(self) -> Step:
+        return LADDER[self.rung - 1] if self.rung else Step.NONE
 
     def on_success(self) -> None:
-        if self.step:
-            log.info("recovered after step %d (%s)", self.step, self.step.name.lower())
-        self.step = Step.NONE
+        if self.rung:
+            log.info("recovered after rung %d (%s)", self.rung, self.step)
+        self.rung = 0
 
     def on_failure(self, outcome: Outcome) -> Step:
         """The step to take after a failed reading.
@@ -95,12 +108,12 @@ class Ladder:
         restarting bluetooth.service, the only fix for a stuck InProgress.
         """
         if outcome is Outcome.NOT_FOUND:
-            self.step = Step.NONE
+            self.rung = 0
         else:
-            step = Step(min(self.step + 1, Step.EXIT))
+            rung = min(self.rung + 1, len(LADDER))
             if outcome is Outcome.BLUEZ_BUSY:
-                step = max(step, Step.RESTART_BLUEZ)
-            self.step = step
+                rung = max(rung, LADDER.index(Step.RESTART_BLUEZ) + 1)
+            self.rung = rung
         return self.step
 
 
@@ -114,11 +127,13 @@ async def recover(step: Step) -> None:
         case Step.RETRY:
             log.info("recovery: retry in %g s", RETRY_WAIT)
             await asyncio.sleep(RETRY_WAIT)
-        case Step.POWER_CYCLE:
-            log.warning("recovery: power-cycling the Bluetooth controller")
+        case Step.POWER_CYCLE_ADAPTER:
+            log.warning("recovery: power-cycling the Bluetooth adapter")
             await _run(*POWER_OFF)
-            await asyncio.sleep(POWER_OFF_WAIT)
-            await _run(*POWER_ON)
+            for _ in range(POWER_ON_TRIES):
+                await asyncio.sleep(POWER_OFF_WAIT)
+                if await _run(*POWER_ON) is not None:
+                    break
             await asyncio.sleep(POWER_CYCLE_SETTLE)
         case Step.RESTART_BLUEZ:
             log.warning("recovery: restarting bluetooth.service")

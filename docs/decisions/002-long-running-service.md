@@ -1,6 +1,6 @@
 # ADR 002: A Long-Running Service with In-Process Recovery
 
-**Status:** Accepted
+**Status:** Accepted; amended 2026-10-17 (see [Amendment: The Ladder in Detail](#amendment-2026-10-17-the-ladder-in-detail))
 
 ## Context
 
@@ -39,3 +39,15 @@ The collector becomes one long-running Python process (asyncio), run by systemd 
 - Readings survive an InfluxDB outage, but not a restart of the service itself: the queue is in memory only.
 - The service holds state, so it needs care about leaks and runaway loops, and its logs matter more: each state change and recovery step is logged.
 - The sudoers rule is part of installation and has to be documented.
+
+## Amendment 2026-10-17: The Ladder in Detail
+
+Settled while building the `health` module.
+
+- **"The controller" in the ladder means the Pi's Bluetooth adapter** (`hci0`, which BlueZ calls the controller), not the charge controller. `bluetoothctl power off/on` power-cycles the adapter; nothing in recovery touches the charge controller. The code calls the step "power-cycle the adapter".
+- **The ladder retries twice:** retry, retry, power-cycle the adapter, restart `bluetooth.service`, exit. A failed retry costs up to a connect timeout, so the bottom of the ladder can take about a minute.
+- **The car being away resets the ladder,** besides taking no step: a scan that sees other devices shows the adapter works, so the controller coming back starts a fresh climb.
+- **BlueZ busy skips the rungs below restarting `bluetooth.service`,** since that's the only fix for a stuck `InProgress`. An adapter error climbs one rung at a time, like the other failures.
+- **Undervoltage changes nothing in the ladder.** It's logged with each failure, as decided above.
+- **The adapter power cycle stays as a precaution.** It was the old poller's fix, at a time when the disconnect left BlueZ in a bad state (an `EOFError` on teardown); the new client disconnects cleanly, so the step may never be needed. The `collector` measurement's `recovery_step` shows how often each rung runs and which one fixed a failure.
+- **Power on can fail right after power off** (`org.bluez.Error.Failed`, seen on the Pi), which would leave the adapter off. The step waits a second before powering on, and tries again if it fails.

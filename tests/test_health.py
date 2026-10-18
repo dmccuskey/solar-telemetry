@@ -65,10 +65,14 @@ def test_outcomes_are_the_collector_values():
     ]
 
 
-def test_the_ladder_climbs_one_step_per_failure():
+def test_the_ladder_climbs_one_rung_per_failure():
     ladder = Ladder()
-    steps = [ladder.on_failure(Outcome.CONNECT_FAILED) for _ in range(5)]
-    assert steps == [Step.RETRY, Step.POWER_CYCLE, Step.RESTART_BLUEZ, Step.EXIT, Step.EXIT]
+    steps, rungs = [], []
+    for _ in range(6):
+        steps.append(ladder.on_failure(Outcome.CONNECT_FAILED))
+        rungs.append(ladder.rung)
+    assert steps == [Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.EXIT, Step.EXIT]
+    assert rungs == [1, 2, 3, 4, 5, 5]
 
 
 def test_a_good_reading_resets_the_ladder():
@@ -76,7 +80,7 @@ def test_a_good_reading_resets_the_ladder():
     ladder.on_failure(Outcome.READ_TIMEOUT)
     ladder.on_failure(Outcome.READ_TIMEOUT)
     ladder.on_success()
-    assert ladder.step is Step.NONE
+    assert ladder.step is Step.NONE and ladder.rung == 0
     assert ladder.on_failure(Outcome.READ_TIMEOUT) is Step.RETRY
 
 
@@ -92,6 +96,7 @@ def test_the_car_away_takes_no_step_and_starts_over():
 def test_bluez_busy_goes_straight_to_restarting_bluez():
     ladder = Ladder()
     assert ladder.on_failure(Outcome.BLUEZ_BUSY) is Step.RESTART_BLUEZ
+    assert ladder.rung == 4
     assert ladder.on_failure(Outcome.BLUEZ_BUSY) is Step.EXIT
 
 
@@ -113,14 +118,20 @@ def test_retry_runs_nothing(commands):
 
 
 def test_power_cycle(commands):
-    asyncio.run(health.recover(Step.POWER_CYCLE))
+    asyncio.run(health.recover(Step.POWER_CYCLE_ADAPTER))
     assert commands == [health.POWER_OFF, health.POWER_ON]
 
 
 def test_power_cycle_powers_on_after_a_failed_power_off(commands):
     commands.answers[health.POWER_OFF] = None
-    asyncio.run(health.recover(Step.POWER_CYCLE))
+    asyncio.run(health.recover(Step.POWER_CYCLE_ADAPTER))
     assert commands == [health.POWER_OFF, health.POWER_ON]
+
+
+def test_power_cycle_tries_power_on_again(commands):
+    commands.answers[health.POWER_ON] = None  # BlueZ's org.bluez.Error.Failed
+    asyncio.run(health.recover(Step.POWER_CYCLE_ADAPTER))
+    assert commands == [health.POWER_OFF] + [health.POWER_ON] * health.POWER_ON_TRIES
 
 
 def test_restart_bluez(commands):
