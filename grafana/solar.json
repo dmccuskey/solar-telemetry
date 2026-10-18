@@ -376,7 +376,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"controller_temp_c\") AS \"Temperature\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "query": "SELECT last(\"controller_temp_c\") * 9 / 5 + 32 AS \"Temperature\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
           "resultFormat": "time_series",
           "alias": "$col"
         }
@@ -385,7 +385,7 @@
         "defaults": {
           "custom": {},
           "mappings": [],
-          "unit": "celsius",
+          "unit": "fahrenheit",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -787,7 +787,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT mean(\"controller_temp_c\") AS \"Controller\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"controller_temp_c\") * 9 / 5 + 32 AS \"Controller\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "alias": "$col"
         }
@@ -802,7 +802,7 @@
             "showPoints": "never"
           },
           "mappings": [],
-          "unit": "celsius"
+          "unit": "fahrenheit"
         },
         "overrides": []
       },
