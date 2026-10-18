@@ -297,13 +297,74 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "PV power",
+      "title": "PV voltage",
       "datasource": {
         "type": "influxdb",
         "uid": "solar"
       },
       "gridPos": {
         "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"pv_v\") AS \"PV V\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "volt",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "PV power",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 16,
         "y": 1,
         "w": 4,
         "h": 4
@@ -355,7 +416,7 @@
       "hideTimeOverride": true
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "stat",
       "title": "Controller",
       "datasource": {
@@ -363,7 +424,7 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 16,
+        "x": 20,
         "y": 1,
         "w": 4,
         "h": 4
@@ -392,69 +453,6 @@
               {
                 "color": "green",
                 "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "value",
-        "justifyMode": "center"
-      },
-      "timeFrom": "7d",
-      "hideTimeOverride": true
-    },
-    {
-      "id": 7,
-      "type": "stat",
-      "title": "Faults",
-      "datasource": {
-        "type": "influxdb",
-        "uid": "solar"
-      },
-      "gridPos": {
-        "x": 20,
-        "y": 1,
-        "w": 4,
-        "h": 4
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "solar"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "query": "SELECT last(\"faults\") AS \"Faults\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
-          "resultFormat": "time_series",
-          "alias": "$col"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
           }
@@ -806,7 +804,7 @@
         "x": 12,
         "y": 17,
         "w": 12,
-        "h": 7
+        "h": 4
       },
       "targets": [
         {
@@ -815,28 +813,6 @@
             "uid": "solar"
           },
           "refId": "A",
-          "rawQuery": true,
-          "query": "SELECT last(\"over_discharges\") AS \"Over-discharges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
-          "resultFormat": "time_series",
-          "alias": "$col"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "solar"
-          },
-          "refId": "B",
-          "rawQuery": true,
-          "query": "SELECT last(\"full_charges\") AS \"Full charges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
-          "resultFormat": "time_series",
-          "alias": "$col"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "solar"
-          },
-          "refId": "C",
           "rawQuery": true,
           "query": "SELECT last(\"operating_days\") AS \"Operating days\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
           "resultFormat": "time_series",
@@ -847,7 +823,7 @@
             "type": "influxdb",
             "uid": "solar"
           },
-          "refId": "D",
+          "refId": "B",
           "rawQuery": true,
           "query": "SELECT last(\"pv_total_wh\") AS \"PV energy\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
           "resultFormat": "time_series",
@@ -858,7 +834,7 @@
             "type": "influxdb",
             "uid": "solar"
           },
-          "refId": "E",
+          "refId": "C",
           "rawQuery": true,
           "query": "SELECT last(\"charge_total_ah\") AS \"Charged\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
           "resultFormat": "time_series",
@@ -924,6 +900,112 @@
     },
     {
       "id": 13,
+      "type": "stat",
+      "title": "",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 12,
+        "h": 3
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"over_discharges\") AS \"Over-discharges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT last(\"full_charges\") AS \"Full charges\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
+          "query": "SELECT last(\"faults\") AS \"Faults\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Faults"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true
+    },
+    {
+      "id": 14,
       "type": "row",
       "title": "Daily",
       "collapsed": false,
@@ -936,7 +1018,7 @@
       "panels": []
     },
     {
-      "id": 14,
+      "id": 15,
       "type": "timeseries",
       "title": "PV energy per day",
       "datasource": {
@@ -1025,7 +1107,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 15,
+      "id": 16,
       "type": "timeseries",
       "title": "Battery voltage, daily min and max",
       "datasource": {
@@ -1091,7 +1173,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 16,
+      "id": 17,
       "type": "timeseries",
       "title": "PV voltage, daily max",
       "datasource": {
@@ -1146,7 +1228,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 21,
+      "id": 22,
       "type": "row",
       "title": "Collector",
       "collapsed": true,
@@ -1158,7 +1240,7 @@
       },
       "panels": [
         {
-          "id": 17,
+          "id": 18,
           "type": "state-timeline",
           "title": "Outcome",
           "datasource": {
@@ -1229,7 +1311,7 @@
           }
         },
         {
-          "id": 18,
+          "id": 19,
           "type": "timeseries",
           "title": "Cycle times",
           "datasource": {
@@ -1304,7 +1386,7 @@
           }
         },
         {
-          "id": 19,
+          "id": 20,
           "type": "timeseries",
           "title": "Signal strength",
           "datasource": {
@@ -1404,7 +1486,7 @@
           ]
         },
         {
-          "id": 20,
+          "id": 21,
           "type": "timeseries",
           "title": "Recovery, throttling, queue",
           "datasource": {
