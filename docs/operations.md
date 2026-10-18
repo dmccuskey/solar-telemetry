@@ -22,7 +22,7 @@ The service logs to the systemd journal:
 ```bash
 journalctl -u solar-telemetry -f              # follow
 journalctl -u solar-telemetry --since today
-journalctl -u solar-telemetry | grep -E 'WARNING|ERROR'    # failures and recovery only
+journalctl -u solar-telemetry -p warning      # failures and recovery only
 ```
 
 A good reading is one line. Typical lines:
@@ -93,7 +93,7 @@ Check, in this order:
 
 1. **Power:** `vcgencmd get_throttled`. Anything but `throttled=0x0` is undervoltage or heat. On a Pi 3, a weak USB supply shows up as dropped connections and failed reads, and no Bluetooth reset fixes it: change the supply. A quiet `journalctl -k | grep -i voltage` doesn't prove the voltage is fine.
 2. **The service:** `systemctl status solar-telemetry`. If it's restarting over and over, the journal says why.
-3. **The journal:** `journalctl -u solar-telemetry --since today | grep -E 'WARNING|ERROR'` lists each failed attempt with its outcome and the step it led to.
+3. **The journal:** `journalctl -u solar-telemetry -p warning --since today` lists each failed attempt with its outcome and the step it led to.
 4. **Range:** `not_found` with other devices in range means the controller isn't advertising where the Pi can hear it: the car is away, the controller has no power, or the phone app holds the connection. `adapter_error` (no devices at all) points at the Pi's adapter: `bluetoothctl show` should say `Powered: yes`.
 5. **InfluxDB:** `systemctl status influxdb`, and `queued` in the latest `collector` points: a growing number means writes are failing.
 

@@ -150,6 +150,27 @@ class Systemd:
             self.notify("WATCHDOG=1")
 
 
+class JournalFormatter(logging.Formatter):
+    """Prefixes each line with its syslog priority (`<4>` for a warning), which
+    journald strips and stores, so `journalctl -p warning` works. Every line of
+    a traceback gets the prefix: journald takes each line as its own entry."""
+
+    PRIORITIES = {logging.CRITICAL: 2, logging.ERROR: 3, logging.WARNING: 4, logging.INFO: 6, logging.DEBUG: 7}
+
+    def format(self, record: logging.LogRecord) -> str:
+        priority = self.PRIORITIES.get(record.levelno, 6)
+        return "\n".join(f"<{priority}>{line}" for line in super().format(record).split("\n"))
+
+
+def to_journal(stream=sys.stderr, environ=os.environ) -> bool:
+    """Whether the stream is the journal: $JOURNAL_STREAM names its device and inode."""
+    try:
+        st = os.fstat(stream.fileno())
+    except (OSError, ValueError, AttributeError):
+        return False
+    return environ.get("JOURNAL_STREAM") == f"{st.st_dev}:{st.st_ino}"
+
+
 # The service
 
 
@@ -326,7 +347,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("config", help="the config file (TOML)")
     args = parser.parse_args(argv)
     # No timestamps: the journal adds its own.
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    handler = logging.StreamHandler()
+    formatter = JournalFormatter if to_journal(handler.stream) else logging.Formatter
+    handler.setFormatter(formatter("%(levelname)s %(name)s: %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
     try:
         config = load_config(args.config)
     except ConfigError as e:

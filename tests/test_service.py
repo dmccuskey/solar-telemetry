@@ -1,8 +1,10 @@
 """The config, sd_notify, and the service's cycles, with a fake controller and InfluxDB."""
 import asyncio
+import io
 import logging
 import os
 import socket
+import sys
 import tempfile
 
 import pytest
@@ -123,6 +125,44 @@ def test_the_watchdog_is_for_another_process():
 def test_a_missing_socket_is_logged_not_raised(caplog):
     Systemd({"NOTIFY_SOCKET": "/tmp/no-such-socket-here"}).notify("READY=1")
     assert "sd_notify READY=1" in caplog.text
+
+
+# The journal
+
+
+def record(level: int, message: str, exc_info=None) -> logging.LogRecord:
+    return logging.LogRecord("solar_telemetry.service", level, __file__, 1, message, None, exc_info)
+
+
+@pytest.mark.parametrize("level, prefix", [
+    (logging.CRITICAL, "<2>"), (logging.ERROR, "<3>"), (logging.WARNING, "<4>"),
+    (logging.INFO, "<6>"), (logging.DEBUG, "<7>"),
+])
+def test_each_line_carries_its_priority(level, prefix):
+    line = service.JournalFormatter("%(levelname)s %(name)s: %(message)s").format(record(level, "hello"))
+    assert line == f"{prefix}{logging.getLevelName(level)} solar_telemetry.service: hello"
+
+
+def test_every_line_of_a_traceback_carries_the_priority():
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        text = service.JournalFormatter("%(message)s").format(record(logging.ERROR, "failed", sys.exc_info()))
+    lines = text.split("\n")
+    assert len(lines) > 2
+    assert all(line.startswith("<3>") for line in lines)
+
+
+def test_to_journal_matches_the_streams_device_and_inode(tmp_path):
+    with open(tmp_path / "log", "w") as f:
+        st = os.fstat(f.fileno())
+        assert service.to_journal(f, {"JOURNAL_STREAM": f"{st.st_dev}:{st.st_ino}"})
+        assert not service.to_journal(f, {"JOURNAL_STREAM": f"{st.st_dev}:{st.st_ino + 1}"})
+        assert not service.to_journal(f, {})
+
+
+def test_to_journal_without_a_file_descriptor():
+    assert not service.to_journal(io.StringIO(), {"JOURNAL_STREAM": "1:2"})
 
 
 # The service
