@@ -98,7 +98,7 @@ sudo -u solar-telemetry /opt/solar-telemetry/.venv/bin/solar-telemetry /etc/sola
 Within about 30 seconds it logs a reading:
 
 ```text
-INFO solar_telemetry.service: controller garage (AA:BB:CC:DD:EE:FF): every 300 s, every 900 s while away; InfluxDB http://127.0.0.1:8086, database solar; watchdog off
+INFO solar_telemetry.service: controller garage (AA:BB:CC:DD:EE:FF): every 300 s, every 300 s while away; InfluxDB http://127.0.0.1:8086, database solar; watchdog off
 INFO solar_telemetry.service: controller model: RNG-CTRL-WND10
 INFO solar_telemetry.service: battery 13.2 V, 96 %, floating; pv 14 W; connect 1.27 s
 ```
