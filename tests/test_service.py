@@ -294,7 +294,7 @@ def test_a_good_cycle_writes_the_reading_and_its_collector_point(svc, controller
     [point] = db.points("collector")
     fields = collector(point)
     assert fields["outcome"] == '"ok"'
-    assert fields["recovery_step"] == "0i" and fields["throttled"] == "0i" and fields["queued"] == "1i"
+    assert fields["recovery_step"] == "0i" and fields["throttled"] == "0i" and fields["queued"] == "0i"
     assert {"find_s", "connect_s", "read_s"} <= fields.keys()
     assert fields["rssi_dbm"] == f"{RSSI}i"
     assert commands == []
@@ -373,7 +373,8 @@ def test_influxdb_down_keeps_the_points(svc, db):
     db.status = 204
     asyncio.run(svc.cycle())
     assert len(svc.writer) == 0
-    assert [collector(line)["queued"] for line in db.points("collector")] == ["1i", "3i", "5i"]
+    # Each cycle counts what the ones before it left: 0, then 2, then 4.
+    assert [collector(line)["queued"] for line in db.points("collector")] == ["0i", "2i", "4i"]
 
 
 def test_failures_and_power_are_logged(svc, controller, commands, monkeypatch, caplog):
@@ -417,3 +418,25 @@ def test_the_sleep_pings_the_watchdog(svc):
     svc.systemd.watchdog = 0.04  # a ping every 0.02 s
     asyncio.run(svc._sleep(0.1))
     assert svc.systemd.states.count("WATCHDOG=1") >= 4
+
+
+# the schedule
+
+MARK = 1_760_000_400.0  # a multiple of 300 and of 900 seconds: a mark on the clock
+
+
+@pytest.mark.parametrize(
+    "now, wait",
+    [
+        (MARK + 15, 300),  # a cycle that took no time
+        (MARK + 15 + 297, 3),  # one that took most of the interval
+        (MARK + 5, 10),  # after a start just past a mark: the offset is still to come
+        (MARK + 15 + 299.5, 0.5),
+    ],
+)
+def test_cycles_start_at_the_next_mark_on_the_clock(now, wait):
+    assert service.until_next_mark(now, 300) == pytest.approx(wait)
+
+
+def test_the_away_interval_keeps_to_its_own_marks():
+    assert service.until_next_mark(MARK + 300 + 20, 900) == pytest.approx(900 - 300 - 5)

@@ -37,7 +37,7 @@ Each cycle:
 2. **On failure,** classify it ([outcomes](data.md#outcomes)). The car being away ends the cycle, and the next comes after the longer away interval. Any other failure takes the next step on the recovery ladder, then the service tries again at once: a failure costs seconds, not a cycle.
 3. **Queue** a `collector` point for every attempt, and a `charge_controller` point for a good reading, each timestamped when the attempt began.
 4. **Write** the queue to InfluxDB, oldest first. If the write fails, the points stay queued for the next cycle.
-5. **Sleep** until the next cycle, measured from this one's start, pinging the systemd watchdog meanwhile.
+5. **Sleep** until the next cycle, pinging the systemd watchdog meanwhile. Cycles start 15 seconds after each mark of the interval on the clock (:00:15, :05:15, ..., or the quarter hours while the car is away), whatever time the service started, so a retry stays in its cycle's 5-minute block and Grafana sees one reading per block. The first cycle after a start runs at once.
 
 Reading and writing never run at the same time: the queue is written only between readings. The steps of a cycle, and the sleep, each ping the watchdog, so a hang anywhere gets the service restarted.
 
