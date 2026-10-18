@@ -3,18 +3,16 @@
 #
 #   scripts/dev.sh test [pytest args]     run the tests on the laptop (needs uv)
 #   scripts/dev.sh deploy                 rsync the working tree to ~/solar-telemetry-dev on the Pi, update its venv
-#   scripts/dev.sh run <command...>       run a command in ~/solar-telemetry-dev, with the poller paused
-#   scripts/dev.sh logs [journalctl args] the poller's journal (default: the last 50 lines)
+#   scripts/dev.sh run <command...>       run a command in ~/solar-telemetry-dev, with the service stopped
+#   scripts/dev.sh logs [journalctl args] the service's journal (default: the last 50 lines)
 #
-# The live checkout (~/solar-telemetry) is never touched: it changes only by git pull.
+# The live checkout (/opt/solar-telemetry) is never touched: it changes only by git pull.
 
 set -eo pipefail
 
 HOST="${SOLAR_HOST:-solarpi}"
 DEST="solar-telemetry-dev"   # relative to the Pi user's home
-POLL_TIMER="renogy-poll.timer"
-POLL_UNIT="renogy-poll.service"
-POLL_LOCK="/tmp/renogy-poll.lock"   # the lock the poller's unit holds while it runs
+SERVICE="solar-telemetry.service"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 usage() {
@@ -44,17 +42,17 @@ cmd_deploy() {
 
 cmd_run() {
     [ $# -gt 0 ] || usage
-    # The controller takes one BLE connection at a time: stop the timer, wait for a poll in progress
-    # to let go of its lock, and start the timer again however the command ends.
+    # The controller takes one BLE connection at a time: stop the service (it disconnects on the way
+    # out), and start it again however the command ends.
     ssh -t "$HOST" "cd $DEST &&
-        sudo systemctl stop $POLL_TIMER &&
-        trap 'sudo systemctl start $POLL_TIMER' EXIT HUP INT TERM &&
-        PATH=\$PWD/.venv/bin:\$PATH flock $POLL_LOCK $(printf '%q ' "$@")"
+        sudo systemctl stop $SERVICE &&
+        trap 'sudo systemctl start $SERVICE' EXIT HUP INT TERM &&
+        PATH=\$PWD/.venv/bin:\$PATH $(printf '%q ' "$@")"
 }
 
 cmd_logs() {
     if [ $# -eq 0 ]; then set -- -n 50; fi
-    ssh "$HOST" journalctl -u "$POLL_UNIT" --no-pager $(printf '%q ' "$@")
+    ssh "$HOST" journalctl -u "$SERVICE" --no-pager $(printf '%q ' "$@")
 }
 
 case "$1" in
