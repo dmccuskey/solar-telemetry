@@ -27,7 +27,7 @@ async def main(step: str, address: str) -> int:
         print(f"{name}: {time.monotonic() - start:.2f} s", flush=True)
 
     for command in STEPS[step]:
-        if await health._run(*command) is None:
+        if await health.run(*command) is None:
             print(f"failed: {' '.join(command)}")
             return 1
         mark(" ".join(command[2:]))

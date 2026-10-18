@@ -129,15 +129,15 @@ async def recover(step: Step) -> None:
             await asyncio.sleep(RETRY_WAIT)
         case Step.POWER_CYCLE_ADAPTER:
             log.warning("recovery: power-cycling the Bluetooth adapter")
-            await _run(*POWER_OFF)
+            await run(*POWER_OFF)
             for _ in range(POWER_ON_TRIES):
                 await asyncio.sleep(POWER_OFF_WAIT)
-                if await _run(*POWER_ON) is not None:
+                if await run(*POWER_ON) is not None:
                     break
             await asyncio.sleep(POWER_CYCLE_SETTLE)
         case Step.RESTART_BLUEZ:
             log.warning("recovery: restarting bluetooth.service")
-            await _run(*RESTART_BLUEZ)
+            await run(*RESTART_BLUEZ)
             await asyncio.sleep(BLUEZ_RESTART_SETTLE)
         case Step.EXIT:
             raise RecoveryExhausted("every recovery step failed")
@@ -160,7 +160,7 @@ async def throttled() -> int | None:
     """`vcgencmd get_throttled` as a number, or None where it can't be read
     (not a Pi, or the command failed). Anything but 0 is a power or heat
     problem, which no Bluetooth reset fixes."""
-    output = await _run(*GET_THROTTLED)
+    output = await run(*GET_THROTTLED)
     return None if output is None else parse_throttled(output)
 
 
@@ -182,7 +182,7 @@ def describe_throttled(value: int) -> str:
     return ", ".join(flags) or "none"
 
 
-async def _run(*command: str) -> str | None:
+async def run(*command: str) -> str | None:
     """Run a command and return its output, or None (logged) if it couldn't
     run, timed out or exited non-zero."""
     try:

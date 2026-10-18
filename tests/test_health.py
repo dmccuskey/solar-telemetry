@@ -32,7 +32,7 @@ class Commands(list):
 @pytest.fixture
 def commands(monkeypatch):
     ran = Commands()
-    monkeypatch.setattr(health, "_run", ran.run)
+    monkeypatch.setattr(health, "run", ran.run)
     return ran
 
 
@@ -188,7 +188,7 @@ def test_describe_throttled(value, text):
 
 
 def run(*command):
-    return asyncio.run(health._run(*command))
+    return asyncio.run(health.run(*command))
 
 
 def test_run_returns_the_output():
