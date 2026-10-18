@@ -1,5 +1,6 @@
 # local config: holds the controller's MAC address
 my_wanderer.ini
+config.toml
 __pycache__/
 .venv/
 .pytest_cache/

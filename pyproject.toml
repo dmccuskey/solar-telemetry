@@ -11,6 +11,9 @@ license = "MIT"
 requires-python = ">=3.11"
 dependencies = ["bleak>=2.1"]
 
+[project.scripts]
+solar-telemetry = "solar_telemetry.service:main"
+
 [dependency-groups]
 dev = ["pytest>=8"]
 
