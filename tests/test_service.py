@@ -43,6 +43,13 @@ def test_full_config():
     assert config == Config("car", ADDRESS, 60.0, 600.5, "http://other:8086", "test")
 
 
+def test_weather_settings():
+    config = parse_config({**MINIMAL, "weather": {"latitude": 37.5, "longitude": -108, "refresh_s": 300}})
+    assert (config.latitude, config.longitude, config.weather_refresh) == (37.5, -108.0, 300.0)
+    assert parse_config(MINIMAL).latitude is None
+    assert parse_config(MINIMAL).weather_refresh == 900.0
+
+
 def test_the_example_config_loads():
     config = service.load_config(os.path.join(os.path.dirname(__file__), "..", "config.example.toml"))
     assert config == parse_config(MINIMAL)
@@ -62,6 +69,11 @@ def test_the_example_config_loads():
         ({**MINIMAL, "schedule": {"interval_s": True}}, "schedule.interval_s: must be a number"),
         ({**MINIMAL, "schedule": {"interval_s": 0}}, "schedule.interval_s: must be a number"),
         ({**MINIMAL, "schedule": {"away_interval_s": float("inf")}}, "schedule.away_interval_s: must be a number"),
+        ({**MINIMAL, "weather": {"latitude": 91, "longitude": 0}}, "weather.latitude: must be a number from -90 to 90"),
+        ({**MINIMAL, "weather": {"latitude": 0, "longitude": "W"}}, "weather.longitude: must be a number from -180"),
+        ({**MINIMAL, "weather": {"latitude": True, "longitude": 0}}, "weather.latitude: must be a number"),
+        ({**MINIMAL, "weather": {"latitude": 37.5}}, "weather: needs both latitude and longitude"),
+        ({**MINIMAL, "weather": {"refresh_s": 30}}, "weather.refresh_s: must be at least 60"),
     ],
 )
 def test_bad_configs(data, message):
@@ -437,6 +449,11 @@ MARK = 1_760_000_400.0  # a multiple of 300 and of 900 seconds: a mark on the cl
 )
 def test_cycles_start_at_the_next_mark_on_the_clock(now, wait):
     assert service.until_next_mark(now, 300) == pytest.approx(wait)
+
+
+def test_marks_with_another_offset():
+    assert service.until_next_mark(MARK + 30, 900, offset=60) == pytest.approx(30)
+    assert service.until_next_mark(MARK + 61, 900, offset=60) == pytest.approx(899)
 
 
 def test_the_away_interval_keeps_to_its_own_marks():

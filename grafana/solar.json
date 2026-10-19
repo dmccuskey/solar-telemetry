@@ -84,7 +84,7 @@
       "gridPos": {
         "x": 0,
         "y": 1,
-        "w": 4,
+        "w": 3,
         "h": 4
       },
       "targets": [
@@ -143,9 +143,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 4,
+        "x": 3,
         "y": 1,
-        "w": 4,
+        "w": 3,
         "h": 4
       },
       "targets": [
@@ -203,7 +203,7 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 8,
+        "x": 6,
         "y": 1,
         "w": 4,
         "h": 4
@@ -303,9 +303,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 12,
+        "x": 10,
         "y": 1,
-        "w": 4,
+        "w": 3,
         "h": 4
       },
       "targets": [
@@ -364,9 +364,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 16,
+        "x": 13,
         "y": 1,
-        "w": 4,
+        "w": 3,
         "h": 4
       },
       "targets": [
@@ -424,7 +424,7 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 20,
+        "x": 16,
         "y": 1,
         "w": 4,
         "h": 4
@@ -477,6 +477,68 @@
     },
     {
       "id": 8,
+      "type": "stat",
+      "title": "Sun tomorrow",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"sunshine_h\") AS \"Sunshine\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND time > now() AND time < now() + 1d",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "suffix: h",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      },
+      "timeFrom": "7d",
+      "hideTimeOverride": true,
+      "description": "Forecast hours of sunshine for tomorrow. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
+    },
+    {
+      "id": 9,
       "type": "timeseries",
       "title": "Battery",
       "datasource": {
@@ -568,7 +630,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "timeseries",
       "title": "Charging",
       "datasource": {
@@ -649,7 +711,195 @@
       }
     },
     {
-      "id": 10,
+      "id": 11,
+      "type": "timeseries",
+      "title": "Sun",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT mean(\"radiation_w_m2\") AS \"Sunlight\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT mean(\"cloud_cover_pct\") AS \"Cloud cover\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
+          "query": "SELECT mean(\"pv_w\") AS \"PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "spanNulls": 660000,
+            "showPoints": "never"
+          },
+          "mappings": [],
+          "unit": "watt"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sunlight"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: W/m\u00b2"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 20
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": 1200000
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cloud cover"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "custom.spanNulls",
+                "value": 1200000
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    6,
+                    6
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PV W"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "watt"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Sunlight on a flat surface (W/m\u00b2, shaded) and cloud cover (%, dashed), with the panel's PV W (right axis). Low PV under a low sun is the weather; low PV under a high sun is the panel, or a full battery taking little. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
+    },
+    {
+      "id": 12,
       "type": "state-timeline",
       "title": "Charging state",
       "datasource": {
@@ -658,7 +908,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 13,
+        "y": 21,
         "w": 24,
         "h": 4
       },
@@ -740,7 +990,7 @@
       }
     },
     {
-      "id": 11,
+      "id": 13,
       "type": "timeseries",
       "title": "Controller temperature",
       "datasource": {
@@ -749,7 +999,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 17,
+        "y": 25,
         "w": 12,
         "h": 7
       },
@@ -793,7 +1043,7 @@
       }
     },
     {
-      "id": 12,
+      "id": 14,
       "type": "stat",
       "title": "Lifetime",
       "datasource": {
@@ -802,7 +1052,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 17,
+        "y": 25,
         "w": 12,
         "h": 4
       },
@@ -899,7 +1149,7 @@
       "hideTimeOverride": true
     },
     {
-      "id": 13,
+      "id": 15,
       "type": "stat",
       "title": "",
       "datasource": {
@@ -908,7 +1158,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 29,
         "w": 12,
         "h": 3
       },
@@ -1005,20 +1255,20 @@
       "hideTimeOverride": true
     },
     {
-      "id": 14,
+      "id": 16,
       "type": "row",
       "title": "Daily",
       "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 24,
+        "y": 32,
         "w": 24,
         "h": 1
       },
       "panels": []
     },
     {
-      "id": 15,
+      "id": 17,
       "type": "timeseries",
       "title": "PV energy per day",
       "datasource": {
@@ -1027,7 +1277,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 25,
+        "y": 33,
         "w": 8,
         "h": 8
       },
@@ -1107,7 +1357,221 @@
       "timeFrom": "14d"
     },
     {
-      "id": 16,
+      "id": 18,
+      "type": "timeseries",
+      "title": "Sun per day",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 33,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"sunshine_h\") AS \"Sunshine\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT last(\"radiation_kwh_m2\") AS \"Sunlight\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "mappings": [],
+          "unit": "suffix: h",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sunshine"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sunlight"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: kWh/m\u00b2"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 6
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Hours of sunshine, and the day's sunlight on a flat surface (kWh/m\u00b2, right axis). Today's is the forecast for the whole day. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
+      "timeFrom": "14d"
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Yield per day",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 33,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT integral(\"pv_w\", 1h) AS \"PV Wh\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT sum(\"radiation_w_m2\") / 4000 AS \"Sun kWh\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true,
+            "showPoints": "always",
+            "pointSize": 6
+          },
+          "mappings": [],
+          "unit": "suffix: Wh per kWh/m\u00b2",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "The day's PV energy (from PV W) per kWh/m\u00b2 of sunlight. Level from day to day while the battery takes all the panel gives; it drops on a day the battery is full and the controller holds back, and when something is wrong at the panel (dirt, shade). Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "Time",
+            "mode": "inner"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "mode": "binary",
+            "alias": "Yield",
+            "replaceFields": true,
+            "binary": {
+              "left": "PV Wh",
+              "operator": "/",
+              "right": "Sun kWh"
+            }
+          }
+        }
+      ],
+      "timeFrom": "14d"
+    },
+    {
+      "id": 20,
       "type": "timeseries",
       "title": "Battery voltage, daily min and max",
       "datasource": {
@@ -1115,9 +1579,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 8,
-        "y": 25,
-        "w": 8,
+        "x": 0,
+        "y": 41,
+        "w": 12,
         "h": 8
       },
       "targets": [
@@ -1173,7 +1637,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 17,
+      "id": 21,
       "type": "timeseries",
       "title": "PV voltage, daily max",
       "datasource": {
@@ -1181,9 +1645,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 16,
-        "y": 25,
-        "w": 8,
+        "x": 12,
+        "y": 41,
+        "w": 12,
         "h": 8
       },
       "targets": [
@@ -1228,19 +1692,19 @@
       "timeFrom": "14d"
     },
     {
-      "id": 22,
+      "id": 26,
       "type": "row",
       "title": "Collector",
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 33,
+        "y": 49,
         "w": 24,
         "h": 1
       },
       "panels": [
         {
-          "id": 18,
+          "id": 22,
           "type": "state-timeline",
           "title": "Outcome",
           "datasource": {
@@ -1249,7 +1713,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 34,
+            "y": 50,
             "w": 24,
             "h": 4
           },
@@ -1311,7 +1775,7 @@
           }
         },
         {
-          "id": 19,
+          "id": 23,
           "type": "timeseries",
           "title": "Cycle times",
           "datasource": {
@@ -1320,7 +1784,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 38,
+            "y": 54,
             "w": 12,
             "h": 8
           },
@@ -1386,7 +1850,7 @@
           }
         },
         {
-          "id": 20,
+          "id": 24,
           "type": "timeseries",
           "title": "Signal strength",
           "datasource": {
@@ -1395,7 +1859,7 @@
           },
           "gridPos": {
             "x": 12,
-            "y": 38,
+            "y": 54,
             "w": 12,
             "h": 8
           },
@@ -1486,7 +1950,7 @@
           ]
         },
         {
-          "id": 21,
+          "id": 25,
           "type": "timeseries",
           "title": "Recovery, throttling, queue",
           "datasource": {
@@ -1495,7 +1959,7 @@
           },
           "gridPos": {
             "x": 0,
-            "y": 46,
+            "y": 62,
             "w": 24,
             "h": 6
           },

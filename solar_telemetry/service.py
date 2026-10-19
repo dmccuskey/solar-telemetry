@@ -46,6 +46,9 @@ AWAY_INTERVAL = 300.0
 MARK_OFFSET = 15.0
 STOP_FLUSH_TIMEOUT = 15.0  # for the last write, on the way out
 
+WEATHER_REFRESH = 900.0  # seconds between weather fetches: Open-Meteo's values are 15-minute ones
+WEATHER_REFRESH_MIN = 60.0
+
 MAC_ADDRESS = re.compile(r"[0-9A-F]{2}(:[0-9A-F]{2}){5}", re.IGNORECASE)
 
 
@@ -64,10 +67,15 @@ class Config:
     away_interval: float = AWAY_INTERVAL
     influx_url: str = influx.URL
     database: str = influx.DATABASE
+    # Only for the weather job (solar_telemetry.weather): the service ignores them.
+    latitude: float | None = None
+    longitude: float | None = None
+    weather_refresh: float = WEATHER_REFRESH
 
 
-# Each setting: (section, key) -> (Config field, type). Anything else in the
-# file is an error, so a misspelt key isn't silently ignored.
+# Each setting: (section, key) -> (Config field, type). The type is str, float
+# (a number of seconds), or a (low, high) range of numbers. Anything else in
+# the file is an error, so a misspelt key isn't silently ignored.
 SETTINGS = {
     ("controller", "name"): ("controller", str),
     ("controller", "address"): ("address", str),
@@ -75,6 +83,9 @@ SETTINGS = {
     ("schedule", "away_interval_s"): ("away_interval", float),
     ("influxdb", "url"): ("influx_url", str),
     ("influxdb", "database"): ("database", str),
+    ("weather", "latitude"): ("latitude", (-90.0, 90.0)),
+    ("weather", "longitude"): ("longitude", (-180.0, 180.0)),
+    ("weather", "refresh_s"): ("weather_refresh", float),
 }
 REQUIRED = {("controller", "name"), ("controller", "address")}
 
@@ -105,6 +116,10 @@ def parse_config(data: dict) -> Config:
         raise ConfigError(f"missing: {', '.join(missing)}")
     if not MAC_ADDRESS.fullmatch(values["address"]):
         raise ConfigError(f"controller.address: not a MAC address: {values['address']}")
+    if ("latitude" in values) != ("longitude" in values):
+        raise ConfigError("weather: needs both latitude and longitude")
+    if values.get("weather_refresh", WEATHER_REFRESH) < WEATHER_REFRESH_MIN:
+        raise ConfigError(f"weather.refresh_s: must be at least {WEATHER_REFRESH_MIN:g}")
     return Config(**values)
 
 
@@ -113,6 +128,11 @@ def _check(name: str, value, kind: type):
         if not isinstance(value, str) or not value.strip():
             raise ConfigError(f"{name}: must be a non-empty string")
         return value.strip()
+    if isinstance(kind, tuple):
+        low, high = kind
+        if isinstance(value, bool) or not isinstance(value, int | float) or not low <= value <= high:
+            raise ConfigError(f"{name}: must be a number from {low:g} to {high:g}")
+        return float(value)
     # A number of seconds. A bool is an int to Python, but not here.
     if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or value <= 0:
         raise ConfigError(f"{name}: must be a number of seconds above 0")
@@ -180,11 +200,11 @@ def to_journal(stream=sys.stderr, environ=os.environ) -> bool:
 # The service
 
 
-def until_next_mark(now: float, interval: float) -> float:
+def until_next_mark(now: float, interval: float, offset: float = MARK_OFFSET) -> float:
     """Seconds from `now` (Unix time) to the next mark of `interval` on the
-    clock, plus MARK_OFFSET."""
-    mark = (now - MARK_OFFSET) // interval * interval + interval
-    return mark + MARK_OFFSET - now
+    clock, plus `offset`."""
+    mark = (now - offset) // interval * interval + interval
+    return mark + offset - now
 
 
 class Service:

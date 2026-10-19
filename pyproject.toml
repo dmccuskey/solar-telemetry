@@ -13,6 +13,7 @@ dependencies = ["bleak>=2.1"]
 
 [project.scripts]
 solar-telemetry = "solar_telemetry.service:main"
+solar-telemetry-weather = "solar_telemetry.weather:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
