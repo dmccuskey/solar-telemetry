@@ -246,6 +246,15 @@ def test_a_good_write_rearms_the_restart(server, commands):
     assert commands == [influx.RESTART_INFLUXDB] * 2
 
 
+def test_a_writer_that_never_restarts_influxdb(server, commands):
+    server.replies = [(None, "refused")] * (influx.RESTART_AFTER + 2)
+    writer = Writer(restart_after=None)
+    writer.add(point())
+    for _ in range(influx.RESTART_AFTER + 2):
+        flush(writer)
+    assert commands == []
+
+
 def test_refused_points_dont_count_toward_a_restart(server, commands):
     server.replies = [(400, "bad")] * (influx.RESTART_AFTER + 1)
     writer = Writer()

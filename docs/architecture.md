@@ -9,6 +9,7 @@ Renogy Wanderer ── BT-1 module ──BLE──▶ Raspberry Pi
                                          ├── solar-telemetry (systemd service)
                                          │     ble ▶ wanderer ▶ influx queue ▶ InfluxDB writer
                                          │       ╰─ health: classify, recover
+                                         ├── solar-telemetry-weather (optional, its own service) ◀── Open-Meteo
                                          └── InfluxDB 1.x ◀── Grafana (here, or another machine)
 ```
 
@@ -26,6 +27,7 @@ The `solar_telemetry` package, one asyncio process. Its only dependency is [blea
 | `health` | classifying a failure into an outcome, the recovery ladder, the recovery commands, and `vcgencmd get_throttled` ([ADR 002](decisions/002-long-running-service.md)) |
 | `influx` | line protocol, the bounded queue, and writing it to InfluxDB 1.x over HTTP, with no client library |
 | `service` | the main loop, the schedule, the config (TOML), and the systemd notifications and watchdog |
+| `weather` | the optional weather job, its own process: fetching Open-Meteo's sunlight and cloud cover for the config's location, and writing them through `influx` ([ADR 005](decisions/005-weather-from-open-meteo.md)) |
 
 The tests (`tests/`, run with pytest) cover everything that needs no radio, against frames recorded from a real controller (`tests/fixtures/wanderer_frames.jsonl`) and fakes for bleak, the recovery commands and InfluxDB.
 
@@ -80,3 +82,4 @@ The collector started as a systemd timer running a script, which ran [renogy-bt]
 - [ADR 002: A Long-Running Service with In-Process Recovery](decisions/002-long-running-service.md)
 - [ADR 003: bluetoothd Without Its GAP Plugin](decisions/003-no-gap-plugin.md)
 - [ADR 004: InfluxDB Beside the Collector, Grafana Best on the Same Machine](decisions/004-one-machine.md)
+- [ADR 005: Weather from Open-Meteo, in a Job of Its Own](decisions/005-weather-from-open-meteo.md)

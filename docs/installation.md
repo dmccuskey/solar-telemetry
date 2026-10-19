@@ -200,6 +200,45 @@ The dashboard, `grafana/solar.json`, is imported by hand, so it stays editable i
 
 After changing the dashboard in Grafana, export it again (**Export › Export as JSON**, without "Export for sharing externally") over `grafana/solar.json`.
 
+## 9. Add the Weather
+
+Optional: sunlight and cloud cover for where the panel is, every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com) ([ADR 005](decisions/005-weather-from-open-meteo.md)). It runs as a second service, so the Pi needs internet access, but the readings never depend on it.
+
+Add the panel's location to the config, in degrees (north and east positive), to two or three decimals: a few hundred metres is close enough for the weather.
+
+```bash
+sudoedit /etc/solar-telemetry/config.toml
+```
+
+```toml
+[weather]
+latitude = 45.52
+longitude = -122.68
+# refresh_s = 900              # between fetches; Open-Meteo's values are 15-minute ones
+```
+
+The service ignores the section and needs no restart. Try the job by hand, with the last 3 days filled in:
+
+```bash
+sudo -u solar-telemetry /opt/solar-telemetry/.venv/bin/solar-telemetry-weather --days 3 /etc/solar-telemetry/config.toml
+```
+
+```text
+INFO solar_telemetry.weather: weather for garage from Open-Meteo: every 900 s; InfluxDB http://127.0.0.1:8086, database solar
+INFO solar_telemetry.weather: weather: 289 quarters, 6 days; now 336.0 W/m², 74 % cloud; today 9.24 h of sunshine
+```
+
+Stop it with Ctrl-C, then install it:
+
+```bash
+sudo install -m 644 systemd/solar-telemetry-weather.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now solar-telemetry-weather
+journalctl -u solar-telemetry-weather -f
+```
+
+A failed fetch is a warning in its journal, and the next fetch fills the gap.
+
 ## Switching from the Timer
 
 The service replaces `renogy-poll.timer`. Only one of them can run, since they share the controller's one connection:
@@ -225,4 +264,4 @@ git pull
 sudo systemctl restart solar-telemetry
 ```
 
-If `systemd/solar-telemetry.service` changed, install it again as in step 7 and run `sudo systemctl daemon-reload` before the restart.
+If `systemd/solar-telemetry.service` changed, install it again as in step 7 and run `sudo systemctl daemon-reload` before the restart. With the weather job, restart it too: `sudo systemctl restart solar-telemetry-weather` (and its unit, as in step 9).

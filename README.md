@@ -21,6 +21,7 @@ Not affiliated with, or endorsed by, Renogy.
 - Keeps a week of readings in memory while InfluxDB is down, and writes them with their original timestamps once it's back
 - Records every attempt in a second measurement, `collector`: outcome, timings, recovery step, power, queue length
 - Runs under systemd as its own unprivileged user, with a watchdog; the few root commands it needs are allowed by name
+- Optional weather beside the readings: sunlight and cloud cover every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com), so low power on a cloudy day can be told from a problem at the panel
 - Its own Bluetooth client on [bleak](https://github.com/hbldh/bleak), and no other dependency
 
 ## Quick Start
@@ -122,6 +123,8 @@ The service only reads from the controller, never writes. As root it runs only t
 ## Acknowledgements
 
 [renogy-bt](https://github.com/cyrils/renogy-bt) by Cyril Sebastian showed how Renogy's BT modules work, and this project's first collector ran it. The service has its own client, written from Renogy's register map ([ADR 001](docs/decisions/001-own-ble-client.md)).
+
+The weather data is from [Open-Meteo](https://open-meteo.com), under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## License
 

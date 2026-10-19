@@ -13,3 +13,11 @@ away_interval_s = 300          # between tries while the car is away
 [influxdb]
 url = "http://127.0.0.1:8086"
 database = "solar"             # created on the first write if missing
+
+# Optional, for the weather job (solar-telemetry-weather): sunlight and cloud
+# cover from Open-Meteo for where the panel is. The service ignores it.
+# [weather]
+# latitude = 0.0               # degrees, north positive
+# longitude = 0.0              # degrees, east positive
+# refresh_s = 900              # between fetches, at its marks on the clock plus a minute; at least 60.
+#                              # Open-Meteo's values are 15-minute ones: shorter fetches them sooner, not finer

@@ -1,0 +1,24 @@
+[Unit]
+Description=Fetch the weather for the solar panel from Open-Meteo and write it to InfluxDB
+Documentation=https://github.com/dmccuskey/solar-telemetry/blob/main/docs/installation.md
+After=network-online.target influxdb.service
+Wants=network-online.target
+
+[Service]
+User=solar-telemetry
+Group=solar-telemetry
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/solar-telemetry/.venv/bin/solar-telemetry-weather /etc/solar-telemetry/config.toml
+# A failed fetch doesn't stop it: it logs and tries again at the next mark.
+# It exits only on a bad config (2), which a restart wouldn't fix.
+Restart=on-failure
+RestartSec=1min
+RestartPreventExitStatus=2
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

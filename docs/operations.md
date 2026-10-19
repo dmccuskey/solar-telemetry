@@ -87,6 +87,17 @@ InfluxDB runs on the same Pi. When a write fails, the points stay in a queue in 
 - The queue is lost if the service itself restarts.
 - A missing database is created. Points InfluxDB refuses as invalid are dropped and logged, so they can't block the queue.
 
+## The Weather Job
+
+The optional weather job, `solar-telemetry-weather`, is a service of its own ([Installation](installation.md#9-add-the-weather)):
+
+```bash
+systemctl status solar-telemetry-weather
+journalctl -u solar-telemetry-weather -p warning --since today
+```
+
+It logs one line per fetch, at each mark of `refresh_s` on the clock plus a minute (:01, :16, :31, :46 by default). A failed fetch (no internet, Open-Meteo down or refusing) is a warning, and the next fetch fills the gap, up to a day back; for a longer outage, run it once by hand with `--days N`. It shares InfluxDB's queue logic with the service, but never restarts InfluxDB. A bad or missing `[weather]` location makes it exit with status 2, and systemd leaves it stopped until the config is fixed.
+
 ## When It Stops Reading
 
 Check, in this order:

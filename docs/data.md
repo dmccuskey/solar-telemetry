@@ -1,11 +1,13 @@
 # Data
 
-What the service writes to InfluxDB: two measurements, one tag, and the fields of each, with example queries.
+What the service writes to InfluxDB: two measurements, one tag, and the fields of each, with example queries. The optional weather job writes two more.
 
 | measurement | one point per | holds |
 |---|---|---|
 | [`charge_controller`](#charge_controller) | good reading | the controller's readings |
 | [`collector`](#collector) | attempt, good or failed | how the attempt went |
+| [`weather`](#weather) | 15 minutes | sunlight and cloud cover, from the weather job |
+| [`weather_daily`](#weather_daily) | local day | sunshine and sunlight per day, with a forecast, from the weather job |
 
 Both go to one database, `solar` by default (the `database` setting), which the service creates on its first write with InfluxDB's default retention policy: kept forever. At one reading every 5 minutes that's about 105,000 points a year per measurement, a few MB. Points are timestamped when the reading was taken, in seconds.
 
@@ -95,6 +97,28 @@ The timings are there only for the steps that finished: a failed connect has `fi
 
 How the steps work is in [Operations: Recovery](operations.md#recovery).
 
+## weather
+
+Written by the weather job, `solar-telemetry-weather`, when the config has a `[weather]` location ([ADR 005](decisions/005-weather-from-open-meteo.md)). The values are [Open-Meteo](https://open-meteo.com)'s (CC BY 4.0): weather-model estimates for the spot, not measurements at the panel. One point per 15 minutes, timestamped at the end of its 15 minutes, only for those already past. Each fetch rewrites the last day's points, with Open-Meteo's revisions. The tag is the same `controller` as the readings'.
+
+| field | type | what |
+|---|---|---|
+| `radiation_w_m2` | float | sunlight on a flat surface (global horizontal irradiance), the mean over the 15 minutes, in W/m² |
+| `cloud_cover_pct` | int | cloud cover |
+| `sunshine_s` | int | seconds of sunshine in the 15 minutes |
+
+A value Open-Meteo has no data for is left out.
+
+## weather_daily
+
+Also from the weather job: one point per local day (the zone from the location), timestamped at the day's local midnight, for the last two days, today and the next three. Today's and the coming days' are a forecast, rewritten on every fetch until the day is over; the last two days' are revised by Open-Meteo for a while after.
+
+| field | type | what |
+|---|---|---|
+| `sunshine_h` | float | hours of sunshine |
+| `radiation_kwh_m2` | float | the day's sunlight on a flat surface, in kWh/m² |
+| `cloud_cover_pct` | int | mean cloud cover |
+
 ## Example Queries
 
 InfluxQL, for InfluxDB 1.x and Grafana's InfluxDB data source. Add `tz('Europe/Berlin')` (your time zone) to a query grouped by day, or the days are UTC.
@@ -139,6 +163,19 @@ Each connect beside the signal it had:
 
 ```sql
 SELECT outcome, rssi_dbm, connect_s FROM collector WHERE time > now() - 1d
+```
+
+PV power beside the sunlight available, hourly (the weather job):
+
+```sql
+SELECT mean(pv_w) FROM charge_controller WHERE time > now() - 1d GROUP BY time(1h);
+SELECT mean(radiation_w_m2) FROM weather WHERE time > now() - 1d GROUP BY time(1h)
+```
+
+Tomorrow's sunshine, from the forecast (the one local midnight in the next 24 hours):
+
+```sql
+SELECT sunshine_h FROM weather_daily WHERE time > now() AND time < now() + 1d
 ```
 
 Every recovery step taken:

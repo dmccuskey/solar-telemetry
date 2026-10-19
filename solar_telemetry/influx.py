@@ -82,10 +82,13 @@ def _field(value: Value) -> str:
 class Writer:
     """The queue, and writing it to one database."""
 
-    def __init__(self, url: str = URL, database: str = DATABASE, capacity: int = CAPACITY):
+    def __init__(
+        self, url: str = URL, database: str = DATABASE, capacity: int = CAPACITY, restart_after: int | None = RESTART_AFTER
+    ):
         self.url = url
         self.database = database
         self.queue = collections.deque(maxlen=capacity)
+        self.restart_after = restart_after  # failed flushes before restarting InfluxDB; None never
         self.failures = 0  # failed flushes in a row
         self.dropped = 0  # points dropped from a full queue since the last good write
         self.restarted = False  # InfluxDB was restarted in this outage
@@ -145,7 +148,7 @@ class Writer:
             log.warning(message)
         else:
             log.debug(message)
-        if self.failures >= RESTART_AFTER and not self.restarted:
+        if self.restart_after is not None and self.failures >= self.restart_after and not self.restarted:
             log.warning("restarting InfluxDB after %d failed writes", self.failures)
             await health.run(*RESTART_INFLUXDB)
             self.restarted = True
