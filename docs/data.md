@@ -6,7 +6,7 @@ What the service writes to InfluxDB: two measurements, one tag, and the fields o
 |---|---|---|
 | [`charge_controller`](#charge_controller) | good reading | the controller's readings |
 | [`collector`](#collector) | attempt, good or failed | how the attempt went |
-| [`weather`](#weather) | 15 minutes | sunlight and cloud cover, from the weather job |
+| [`weather`](#weather) | 15 minutes | sunlight, cloud cover, precipitation and humidity, from the weather job |
 | [`weather_daily`](#weather_daily) | local day | sunshine and sunlight per day, with a forecast, from the weather job |
 
 Both go to one database, `solar` by default (the `database` setting), which the service creates on its first write with InfluxDB's default retention policy: kept forever. At one reading every 5 minutes that's about 105,000 points a year per measurement, a few MB. Points are timestamped when the reading was taken, in seconds.
@@ -106,6 +106,9 @@ Written by the weather job, `solar-telemetry-weather`, when the config has a `[w
 | `radiation_w_m2` | float | sunlight on a flat surface (global horizontal irradiance), the mean over the 15 minutes, in W/m² |
 | `cloud_cover_pct` | int | cloud cover |
 | `sunshine_s` | int | seconds of sunshine in the 15 minutes |
+| `precipitation_mm` | float | rain, showers and snow (as water) in the 15 minutes, in mm |
+| `snowfall_cm` | float | snow in the 15 minutes, in cm |
+| `humidity_pct` | int | relative humidity at 2 m |
 
 A value Open-Meteo has no data for is left out.
 
@@ -118,6 +121,9 @@ Also from the weather job: one point per local day (the zone from the location),
 | `sunshine_h` | float | hours of sunshine |
 | `radiation_kwh_m2` | float | the day's sunlight on a flat surface, in kWh/m² |
 | `cloud_cover_pct` | int | mean cloud cover |
+| `precipitation_mm` | float | the day's rain, showers and snow (as water), in mm |
+| `precipitation_h` | float | hours with precipitation |
+| `snowfall_cm` | float | the day's snow, in cm |
 
 ## Example Queries
 
@@ -138,12 +144,16 @@ WHERE time > now() - 7d GROUP BY time(1h)
 
 ### Daily Energy
 
-The day's rise in a lifetime total is more accurate than adding up 5-minute power samples:
+The energy into the battery per day, from battery voltage × charge current. Each 5-minute mean counts for a twelfth of an hour, so a gap in the readings counts as nothing (`integral()` would draw a line across it):
 
 ```sql
-SELECT spread(pv_total_wh) AS generated_wh, spread(load_total_wh) AS used_wh FROM charge_controller
+SELECT sum(p) / 12 AS charged_wh FROM (
+  SELECT mean(p) AS p FROM (SELECT battery_v * battery_charge_a AS p FROM charge_controller WHERE time > now() - 30d)
+  WHERE time > now() - 30d GROUP BY time(5m))
 WHERE time > now() - 30d GROUP BY time(1d)
 ```
+
+The day's rise in a lifetime total (`spread(pv_total_wh)`) is simpler, but the Wanderer updates its totals only a whole amp-hour at a time (about 14 Wh). On a small panel that's once a day or less, too coarse for daily figures. `pv_w` is in whole watts, so at a few watts its sum reads low.
 
 ### How the Collector Is Doing
 
@@ -163,6 +173,13 @@ Each connect beside the signal it had:
 
 ```sql
 SELECT outcome, rssi_dbm, connect_s FROM collector WHERE time > now() - 1d
+```
+
+Connect times beside the rain, hourly (the weather job):
+
+```sql
+SELECT median(connect_s) FROM collector WHERE time > now() - 7d GROUP BY time(1h);
+SELECT sum(precipitation_mm), mean(humidity_pct) FROM weather WHERE time > now() - 7d GROUP BY time(1h)
 ```
 
 PV power beside the sunlight available, hourly (the weather job):

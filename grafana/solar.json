@@ -757,6 +757,17 @@
           "query": "SELECT mean(\"pv_w\") AS \"PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "D",
+          "rawQuery": true,
+          "query": "SELECT mean(\"precipitation_mm\") AS \"Rain\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "resultFormat": "time_series",
+          "alias": "$col"
         }
       ],
       "fieldConfig": {
@@ -882,6 +893,53 @@
                 "value": 0
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rain"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "lengthmm"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 2
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 60
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              }
+            ]
           }
         ]
       },
@@ -896,7 +954,7 @@
           "sort": "none"
         }
       },
-      "description": "Sunlight on a flat surface (W/m\u00b2, shaded) and cloud cover (%, dashed), with the panel's PV W (right axis). Low PV under a low sun is the weather; low PV under a high sun is the panel, or a full battery taking little. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
+      "description": "Sunlight on a flat surface (W/m\u00b2, shaded), cloud cover (%, dashed) and rain (mm per 15 minutes, blue bars; rain and snow, as water), with the panel's PV W (right axis). Low PV under a low sun is the weather; low PV under a high sun is the panel, or a full battery taking little. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
     },
     {
       "id": 12,
@@ -1278,7 +1336,7 @@
       "gridPos": {
         "x": 0,
         "y": 33,
-        "w": 8,
+        "w": 6,
         "h": 8
       },
       "targets": [
@@ -1330,9 +1388,9 @@
         "uid": "solar"
       },
       "gridPos": {
-        "x": 8,
+        "x": 6,
         "y": 33,
-        "w": 8,
+        "w": 6,
         "h": 8
       },
       "targets": [
@@ -1448,15 +1506,189 @@
     {
       "id": 19,
       "type": "timeseries",
+      "title": "Rain per day",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "solar"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 33,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "query": "SELECT last(\"precipitation_mm\") AS \"Rain\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "query": "SELECT last(\"snowfall_cm\") AS \"Snow\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "solar"
+          },
+          "refId": "C",
+          "rawQuery": true,
+          "query": "SELECT last(\"precipitation_h\") AS \"Hours\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "resultFormat": "time_series",
+          "alias": "$col"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1
+          },
+          "mappings": [],
+          "unit": "lengthmm",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rain"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Snow"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: cm"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "hidden"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#c0d8ff"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hours"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: h"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 24
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 6
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "The day's rain, showers and snow as water (mm), snowfall (cm), and the hours with any (right axis). Today's is the forecast for the whole day. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
+      "timeFrom": "14d"
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
       "title": "Yield per day",
       "datasource": {
         "type": "influxdb",
         "uid": "solar"
       },
       "gridPos": {
-        "x": 16,
+        "x": 18,
         "y": 33,
-        "w": 8,
+        "w": 6,
         "h": 8
       },
       "targets": [
@@ -1536,7 +1768,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 20,
+      "id": 21,
       "type": "timeseries",
       "title": "Battery voltage, daily min and max",
       "datasource": {
@@ -1602,7 +1834,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 21,
+      "id": 22,
       "type": "timeseries",
       "title": "PV voltage, daily max",
       "datasource": {
@@ -1657,7 +1889,7 @@
       "timeFrom": "14d"
     },
     {
-      "id": 26,
+      "id": 27,
       "type": "row",
       "title": "Collector",
       "collapsed": true,
@@ -1669,7 +1901,7 @@
       },
       "panels": [
         {
-          "id": 22,
+          "id": 23,
           "type": "state-timeline",
           "title": "Outcome",
           "datasource": {
@@ -1740,7 +1972,7 @@
           }
         },
         {
-          "id": 23,
+          "id": 24,
           "type": "timeseries",
           "title": "Cycle times",
           "datasource": {
@@ -1815,7 +2047,7 @@
           }
         },
         {
-          "id": 24,
+          "id": 25,
           "type": "timeseries",
           "title": "Signal strength",
           "datasource": {
@@ -1915,7 +2147,7 @@
           ]
         },
         {
-          "id": 25,
+          "id": 26,
           "type": "timeseries",
           "title": "Recovery, throttling, queue",
           "datasource": {

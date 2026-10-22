@@ -21,7 +21,7 @@ Not affiliated with, or endorsed by, Renogy.
 - Keeps a week of readings in memory while InfluxDB is down, and writes them with their original timestamps once it's back
 - Records every attempt in a second measurement, `collector`: outcome, timings, recovery step, power, queue length
 - Runs under systemd as its own unprivileged user, with a watchdog; the few root commands it needs are allowed by name
-- Optional weather beside the readings: sunlight and cloud cover every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com), so low power on a cloudy day can be told from a problem at the panel
+- Optional weather beside the readings: sunlight, cloud cover, rain and humidity every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com), so low power on a cloudy day can be told from a problem at the panel
 - Its own Bluetooth client on [bleak](https://github.com/hbldh/bleak), and no other dependency
 
 ## Quick Start
