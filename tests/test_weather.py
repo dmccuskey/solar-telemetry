@@ -25,12 +25,18 @@ REPLY = {
         "shortwave_radiation": [332.0, 336.0, 337.0],
         "cloud_cover": [66, 74, 70],
         "sunshine_duration": [900.0, 412.5, 900.0],
+        "precipitation": [0.0, 0.3, 0.1],
+        "snowfall": [0.0, 0.0, 0.0],
+        "relative_humidity_2m": [89, 97, 98],
     },
     "daily": {
         "time": [MIDNIGHT - DAY, MIDNIGHT, MIDNIGHT + DAY],
         "sunshine_duration": [28366.09, 33257.02, 17625.64],
         "shortwave_radiation_sum": [14.25, 13.6, 4.53],
         "cloud_cover_mean": [44, 52, 97],
+        "precipitation_sum": [0.0, 11.2, 45.5],
+        "precipitation_hours": [0.0, 13.0, 17.0],
+        "snowfall_sum": [0.0, 0.0, 0.7],
     },
 }
 NOW = T + 300
@@ -46,7 +52,12 @@ def config(**settings):
 def test_the_query_asks_for_a_day_of_quarters_and_six_days():
     q = weather.query(1.5, -2.5)
     assert q["latitude"] == "1.5" and q["longitude"] == "-2.5"
-    assert q["minutely_15"] == "shortwave_radiation,cloud_cover,sunshine_duration"
+    assert q["minutely_15"] == (
+        "shortwave_radiation,cloud_cover,sunshine_duration,precipitation,snowfall,relative_humidity_2m"
+    )
+    assert q["daily"] == (
+        "sunshine_duration,shortwave_radiation_sum,cloud_cover_mean,precipitation_sum,precipitation_hours,snowfall_sum"
+    )
     assert (q["past_minutely_15"], q["past_days"], q["forecast_days"]) == ("96", "2", "4")
     assert (q["timezone"], q["timeformat"]) == ("auto", "unixtime")
 
@@ -61,21 +72,29 @@ def test_a_backfill_asks_for_more_days():
 
 def test_past_quarters_and_every_day_become_points():
     points = weather.parse(REPLY, TAGS, NOW)
+    wet = {"precipitation_mm": 0.3, "snowfall_cm": 0.0, "humidity_pct": 97}
     assert points == [
-        influx.Point("weather", TAGS, {"radiation_w_m2": 332.0, "cloud_cover_pct": 66, "sunshine_s": 900}, T - Q),
-        influx.Point("weather", TAGS, {"radiation_w_m2": 336.0, "cloud_cover_pct": 74, "sunshine_s": 412}, T),
-        influx.Point("weather_daily", TAGS, {"sunshine_h": 7.88, "radiation_kwh_m2": 3.958, "cloud_cover_pct": 44},
+        influx.Point("weather", TAGS, {"radiation_w_m2": 332.0, "cloud_cover_pct": 66, "sunshine_s": 900,
+                                       "precipitation_mm": 0.0, "snowfall_cm": 0.0, "humidity_pct": 89}, T - Q),
+        influx.Point("weather", TAGS, {"radiation_w_m2": 336.0, "cloud_cover_pct": 74, "sunshine_s": 412} | wet, T),
+        influx.Point("weather_daily", TAGS, {"sunshine_h": 7.88, "radiation_kwh_m2": 3.958, "cloud_cover_pct": 44,
+                                             "precipitation_mm": 0.0, "precipitation_h": 0.0, "snowfall_cm": 0.0},
                      MIDNIGHT - DAY),
-        influx.Point("weather_daily", TAGS, {"sunshine_h": 9.24, "radiation_kwh_m2": 3.778, "cloud_cover_pct": 52},
+        influx.Point("weather_daily", TAGS, {"sunshine_h": 9.24, "radiation_kwh_m2": 3.778, "cloud_cover_pct": 52,
+                                             "precipitation_mm": 11.2, "precipitation_h": 13.0, "snowfall_cm": 0.0},
                      MIDNIGHT),
-        influx.Point("weather_daily", TAGS, {"sunshine_h": 4.9, "radiation_kwh_m2": 1.258, "cloud_cover_pct": 97},
+        influx.Point("weather_daily", TAGS, {"sunshine_h": 4.9, "radiation_kwh_m2": 1.258, "cloud_cover_pct": 97,
+                                             "precipitation_mm": 45.5, "precipitation_h": 17.0, "snowfall_cm": 0.7},
                      MIDNIGHT + DAY),
     ]
 
 
 def test_the_points_are_valid_line_protocol():
     lines = [influx.to_line(p) for p in weather.parse(REPLY, TAGS, NOW)]
-    assert lines[1] == f"weather,controller=car radiation_w_m2=336.0,cloud_cover_pct=74i,sunshine_s=412i {T}"
+    assert lines[1] == (
+        "weather,controller=car radiation_w_m2=336.0,cloud_cover_pct=74i,sunshine_s=412i,"
+        f"precipitation_mm=0.3,snowfall_cm=0.0,humidity_pct=97i {T}"
+    )
 
 
 def test_missing_values_are_left_out():
@@ -83,6 +102,8 @@ def test_missing_values_are_left_out():
     reply["minutely_15"]["cloud_cover"] = [None, 74, None]
     reply["minutely_15"]["shortwave_radiation"][0] = None
     reply["minutely_15"]["sunshine_duration"][0] = None
+    for key in ("precipitation", "snowfall", "relative_humidity_2m"):
+        reply["minutely_15"][key][0] = None
     points = weather.parse(reply, TAGS, NOW)
     assert [p.time for p in points if p.measurement == "weather"] == [T]  # the first had nothing
 
@@ -180,7 +201,7 @@ def test_a_fetch_writes_its_points(open_meteo, caplog):
     assert asked == [(1.5, -2.5, 3)]
     assert len(writer.points) == 5 and writer.flushes == 1
     assert {p.tags["controller"] for p in writer.points} == {"car"}
-    assert "2 quarters, 3 days; now 336.0 W/m², 74 % cloud; today 9.24 h" in caplog.text
+    assert "2 quarters, 3 days; now 336.0 W/m², 74 % cloud, 0.3 mm; today 9.24 h of sunshine, 11.2 mm" in caplog.text
 
 
 def test_a_failed_fetch_is_logged_and_writes_nothing_new(open_meteo, caplog):

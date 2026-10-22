@@ -97,7 +97,7 @@ systemctl status solar-telemetry-weather
 journalctl -u solar-telemetry-weather -p warning --since today
 ```
 
-It logs one line per fetch, at each mark of `refresh_s` on the clock plus a minute (:01, :16, :31, :46 by default). A failed fetch (no internet, Open-Meteo down or refusing) is a warning, and the next fetch fills the gap, up to a day back; for a longer outage, run it once by hand with `--days N`. It shares InfluxDB's queue logic with the service, but never restarts InfluxDB. A bad or missing `[weather]` location makes it exit with status 2, and systemd leaves it stopped until the config is fixed.
+It logs one line per fetch, at each mark of `refresh_s` on the clock plus a minute (:01, :16, :31, :46 by default). A failed fetch (no internet, Open-Meteo down or refusing) is a warning, and the next fetch fills the gap, up to a day back; for a longer outage, run it by hand with `--days N` (it fills those days on its first fetch, then goes on fetching: stop it with Ctrl-C once that line is logged). It shares InfluxDB's queue logic with the service, but never restarts InfluxDB. A bad or missing `[weather]` location makes it exit with status 2, and systemd leaves it stopped until the config is fixed.
 
 ## When It Stops Reading
 

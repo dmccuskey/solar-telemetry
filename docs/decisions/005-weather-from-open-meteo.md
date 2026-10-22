@@ -1,6 +1,6 @@
 # ADR 005: Weather from Open-Meteo, in a Job of Its Own
 
-**Status:** Accepted (2026-10-19)
+**Status:** Accepted (2026-10-19); precipitation, snowfall and humidity added 2026-10-22 (see [Amendment](#amendment-2026-10-22-precipitation-and-humidity))
 
 ## Context
 
@@ -33,3 +33,7 @@ Where to fetch it: the service already has a config, an InfluxDB writer and a sc
 - The location goes in the config, on the Pi; it's a home or a parking spot, so it stays out of anything shared.
 - A second unit to install and watch, though it needs no sudoers rules and no Bluetooth.
 - Open-Meteo is one provider: if it changes its API or terms, the job's request and parsing change, not the measurements.
+
+## Amendment 2026-10-22: Precipitation and Humidity
+
+Connects slowed from about 1.2 s to 1.4–1.7 s when days of rain set in, with the car and the Pi unmoved: water absorbs and scatters 2.4 GHz. Snow on the panel would stop it under a clear sky. Both can't be read from cloud cover. So the job also fetches, from the same request: every 15 minutes, precipitation (mm), snowfall (cm) and relative humidity; per day, precipitation (mm), hours of precipitation and snowfall (cm). New fields only ([Data](../data.md#weather)).

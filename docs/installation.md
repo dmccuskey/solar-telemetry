@@ -203,7 +203,7 @@ After changing the dashboard in Grafana, export it again (**Export › Export as
 
 ## 9. Add the Weather
 
-Optional: sunlight and cloud cover for where the panel is, every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com) ([ADR 005](decisions/005-weather-from-open-meteo.md)). It runs as a second service, so the Pi needs internet access, but the readings never depend on it.
+Optional: sunlight, cloud cover, precipitation and humidity for where the panel is, every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com) ([ADR 005](decisions/005-weather-from-open-meteo.md)). It runs as a second service, so the Pi needs internet access, but the readings never depend on it.
 
 Add the panel's location to the config, in degrees (north and east positive), to two or three decimals: a few hundred metres is close enough for the weather.
 
@@ -226,7 +226,7 @@ sudo -u solar-telemetry /opt/solar-telemetry/.venv/bin/solar-telemetry-weather -
 
 ```text
 INFO solar_telemetry.weather: weather for garage from Open-Meteo: every 900 s; InfluxDB http://127.0.0.1:8086, database solar
-INFO solar_telemetry.weather: weather: 289 quarters, 6 days; now 336.0 W/m², 74 % cloud; today 9.24 h of sunshine
+INFO solar_telemetry.weather: weather: 289 quarters, 6 days; now 336.0 W/m², 74 % cloud, 0.0 mm; today 9.24 h of sunshine, 0.0 mm
 ```
 
 Stop it with Ctrl-C, then install it:

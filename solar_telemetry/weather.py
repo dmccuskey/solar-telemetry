@@ -1,4 +1,5 @@
-"""The weather job: Open-Meteo's sunlight and cloud cover beside the readings (ADR 005).
+"""The weather job: Open-Meteo's sunlight, cloud cover, precipitation and
+humidity beside the readings (ADR 005).
 
 At each mark of `[weather] refresh_s` on the clock, plus a minute, and once at
 its start, it fetches the weather for the config's latitude and longitude from
@@ -44,8 +45,13 @@ QUARTERS_PER_DAY = 96
 PAST_DAYS = 2  # daily values before today
 FORECAST_DAYS = 4  # daily values from today on: today and the next three
 
-MINUTELY = ("shortwave_radiation", "cloud_cover", "sunshine_duration")
-DAILY = ("sunshine_duration", "shortwave_radiation_sum", "cloud_cover_mean")
+MINUTELY = (
+    "shortwave_radiation", "cloud_cover", "sunshine_duration", "precipitation", "snowfall", "relative_humidity_2m",
+)
+DAILY = (
+    "sunshine_duration", "shortwave_radiation_sum", "cloud_cover_mean",
+    "precipitation_sum", "precipitation_hours", "snowfall_sum",
+)
 
 
 class WeatherError(Exception):
@@ -81,6 +87,9 @@ def parse(reply: dict, tags: dict[str, str], now: float) -> list[influx.Point]:
                 "radiation_w_m2": ("shortwave_radiation", float),
                 "cloud_cover_pct": ("cloud_cover", _whole),
                 "sunshine_s": ("sunshine_duration", _whole),
+                "precipitation_mm": ("precipitation", float),
+                "snowfall_cm": ("snowfall", float),
+                "humidity_pct": ("relative_humidity_2m", _whole),
             })
             if fields:
                 points.append(influx.Point("weather", tags, fields, int(t)))
@@ -90,6 +99,9 @@ def parse(reply: dict, tags: dict[str, str], now: float) -> list[influx.Point]:
                 "sunshine_h": ("sunshine_duration", lambda s: round(s / 3600, 2)),
                 "radiation_kwh_m2": ("shortwave_radiation_sum", lambda mj: round(mj / 3.6, 3)),
                 "cloud_cover_pct": ("cloud_cover_mean", _whole),
+                "precipitation_mm": ("precipitation_sum", float),
+                "precipitation_h": ("precipitation_hours", float),
+                "snowfall_cm": ("snowfall_sum", float),
             })
             if fields:
                 points.append(influx.Point("weather_daily", tags, fields, int(t)))
@@ -182,9 +194,10 @@ class Job:
         latest = quarters[-1].fields if quarters else {}
         today = days[-1].fields if days else {}
         log.info(
-            "weather: %d quarters, %d days; now %s W/m², %s %% cloud; today %s h of sunshine",
+            "weather: %d quarters, %d days; now %s W/m², %s %% cloud, %s mm; today %s h of sunshine, %s mm",
             len(quarters), len(points) - len(quarters),
-            latest.get("radiation_w_m2", "-"), latest.get("cloud_cover_pct", "-"), today.get("sunshine_h", "-"),
+            latest.get("radiation_w_m2", "-"), latest.get("cloud_cover_pct", "-"), latest.get("precipitation_mm", "-"),
+            today.get("sunshine_h", "-"), today.get("precipitation_mm", "-"),
         )
 
 
