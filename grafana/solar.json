@@ -765,7 +765,7 @@
           },
           "refId": "D",
           "rawQuery": true,
-          "query": "SELECT mean(\"precipitation_mm\") AS \"Rain\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
+          "query": "SELECT mean(\"precipitation_mm\") / 25.4 AS \"Rain\" FROM \"weather\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time($__interval) fill(null)",
           "resultFormat": "time_series",
           "alias": "$col"
         }
@@ -902,19 +902,19 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "lengthmm"
+                "value": "lengthin"
               },
               {
                 "id": "decimals",
-                "value": 1
+                "value": 2
               },
               {
                 "id": "min",
                 "value": 0
               },
               {
-                "id": "max",
-                "value": 2
+                "id": "custom.axisSoftMax",
+                "value": 0.08
               },
               {
                 "id": "color",
@@ -954,7 +954,7 @@
           "sort": "none"
         }
       },
-      "description": "Sunlight on a flat surface (W/m\u00b2, shaded), cloud cover (%, dashed) and rain (mm per 15 minutes, blue bars; rain and snow, as water), with the panel's PV W (right axis). Low PV under a low sun is the weather; low PV under a high sun is the panel, or a full battery taking little. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
+      "description": "Sunlight on a flat surface (W/m\u00b2, shaded), cloud cover (%, dashed) and rain (inches per 15 minutes, blue bars; rain and snow, as water), with the panel's PV W (right axis). Low PV under a low sun is the weather; low PV under a high sun is the panel, or a full battery taking little. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel."
     },
     {
       "id": 12,
@@ -1525,7 +1525,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT last(\"precipitation_mm\") AS \"Rain\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT last(\"precipitation_mm\") / 25.4 AS \"Rain\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         },
@@ -1536,7 +1536,7 @@
           },
           "refId": "B",
           "rawQuery": true,
-          "query": "SELECT last(\"snowfall_cm\") AS \"Snow\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT last(\"snowfall_cm\") / 2.54 AS \"Snow\" FROM \"weather_daily\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         },
@@ -1560,8 +1560,8 @@
             "lineWidth": 1
           },
           "mappings": [],
-          "unit": "lengthmm",
-          "decimals": 1
+          "unit": "lengthin",
+          "decimals": 2
         },
         "overrides": [
           {
@@ -1591,7 +1591,7 @@
             "properties": [
               {
                 "id": "unit",
-                "value": "suffix: cm"
+                "value": "lengthin"
               },
               {
                 "id": "min",
@@ -1674,7 +1674,7 @@
           "sort": "none"
         }
       },
-      "description": "The day's rain, showers and snow as water (mm), snowfall (cm), and the hours with any (right axis). Today's is the forecast for the whole day. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
+      "description": "The day's rain, showers and snow as water, snowfall, both in inches, and the hours with any (right axis). Today's is the forecast for the whole day. Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
       "timeFrom": "14d"
     },
     {
