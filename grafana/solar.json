@@ -1289,18 +1289,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT difference(last(\"pv_total_wh\")) AS \"Controller total\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) tz('$tz')",
-          "resultFormat": "time_series",
-          "alias": "$col"
-        },
-        {
-          "datasource": {
-            "type": "influxdb",
-            "uid": "solar"
-          },
-          "refId": "B",
-          "rawQuery": true,
-          "query": "SELECT integral(\"pv_w\", 1h) AS \"From PV W\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT sum(\"p\") / 12 AS \"Into the battery\" FROM (SELECT mean(\"p\") AS \"p\" FROM (SELECT \"battery_v\" * \"battery_charge_a\" AS \"p\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter) WHERE $timeFilter GROUP BY time(5m)) WHERE $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         }
@@ -1316,32 +1305,7 @@
           "unit": "watth",
           "decimals": 1
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Controller total"
-            },
-            "properties": [
-              {
-                "id": "custom.barAlignment",
-                "value": -1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "From PV W"
-            },
-            "properties": [
-              {
-                "id": "custom.barAlignment",
-                "value": 1
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "options": {
         "legend": {
@@ -1354,6 +1318,7 @@
           "sort": "none"
         }
       },
+      "description": "The energy the battery took each day: battery voltage \u00d7 charge current, from the 5-minute readings. Missing readings count as nothing. A full battery takes little, whatever the sun.",
       "timeFrom": "14d"
     },
     {
@@ -1502,7 +1467,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT integral(\"pv_w\", 1h) AS \"PV Wh\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT sum(\"p\") / 12 AS \"Battery Wh\" FROM (SELECT mean(\"p\") AS \"p\" FROM (SELECT \"battery_v\" * \"battery_charge_a\" AS \"p\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter) WHERE $timeFilter GROUP BY time(5m)) WHERE $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         },
@@ -1545,7 +1510,7 @@
           "sort": "none"
         }
       },
-      "description": "The day's PV energy (from PV W) per kWh/m\u00b2 of sunlight. Level from day to day while the battery takes all the panel gives; it drops on a day the battery is full and the controller holds back, and when something is wrong at the panel (dirt, shade). Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
+      "description": "The day's energy into the battery per kWh/m\u00b2 of sunlight. Level from day to day while the battery takes all the panel gives; it drops on a day the battery is full and the controller holds back, and when something is wrong at the panel (dirt, shade). Weather: Open-Meteo (open-meteo.com, CC BY 4.0), model estimates for the location, not a measurement at the panel.",
       "transformations": [
         {
           "id": "joinByField",
@@ -1561,7 +1526,7 @@
             "alias": "Yield",
             "replaceFields": true,
             "binary": {
-              "left": "PV Wh",
+              "left": "Battery Wh",
               "operator": "/",
               "right": "Sun kWh"
             }
