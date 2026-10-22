@@ -77,7 +77,7 @@ One point per attempt to read the controller, whether it worked or not. A cycle 
 | `connect_s` | float | seconds to connect |
 | `rssi_dbm` | int | the controller's Bluetooth signal strength at the Pi, in dBm, from the advertisement that found it. Missing when it wasn't found. Around -86 at the car; the closer to 0, the stronger |
 | `read_s` | float | seconds to read the registers (the first reading after a start also reads the model) |
-| `recovery_step` | int | the recovery step this attempt's failure led to: 0 none, 1 and 2 retry, 3 power-cycle the Bluetooth adapter, 4 restart `bluetooth.service`, 5 exit |
+| `recovery_step` | int | the recovery step this attempt's failure led to: 0 none, 1 and 2 retry, 3 power-cycle the Bluetooth adapter, 4 restart `bluetooth.service`, 5 reset the Bluetooth adapter (rebind its driver), 6 exit. Before 2026-10-22, 5 was exit |
 | `throttled` | int | `vcgencmd get_throttled`: 0 is fine; anything else is undervoltage or heat. Missing where it can't be read |
 | `queued` | int | points earlier cycles couldn't write to InfluxDB, still queued when this cycle began. 0 while writes work; it climbs while InfluxDB is down, and the cycle after it's back is the last to show it |
 
@@ -89,7 +89,7 @@ The timings are there only for the steps that finished: a failed connect has `fi
 |---|---|---|
 | `ok` | a good reading | none; resets the ladder |
 | `not_found` | the controller isn't in range, but other devices are: the car is away | none; the next try comes after the away interval |
-| `bluez_busy` | BlueZ refused with "in progress" | straight to step 4, restarting `bluetooth.service` |
+| `bluez_busy` | BlueZ refused with "in progress" | straight to step 4, restarting `bluetooth.service`; then step 5, resetting the adapter, if it happens again |
 | `connect_failed` | found, but connecting failed, or the link dropped | the next step |
 | `read_timeout` | no complete reply in time | the next step |
 | `bad_reply` | a reply that isn't a valid Modbus reply | the next step |

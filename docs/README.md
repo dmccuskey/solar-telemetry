@@ -20,6 +20,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 - [ADR 003: bluetoothd Without Its GAP Plugin](decisions/003-no-gap-plugin.md)
 - [ADR 004: InfluxDB Beside the Collector, Grafana Best on the Same Machine](decisions/004-one-machine.md)
 - [ADR 005: Weather from Open-Meteo, in a Job of Its Own](decisions/005-weather-from-open-meteo.md)
+- [ADR 006: Reset a Hung Adapter, and Let systemd Reboot](decisions/006-reset-the-adapter.md)
 
 ## Project Structure
 

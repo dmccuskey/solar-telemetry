@@ -3,15 +3,15 @@
 A failed reading is classified by its error before anything is reset. The car
 being away is not a failure: it resets nothing. Anything else climbs the
 ladder one rung per consecutive failure, with a wait after each step: retry
-twice, power-cycle the Pi's Bluetooth adapter, restart bluetooth.service, and
-last, exit and let systemd restart the service. A good reading resets the
-ladder.
+twice, power-cycle the Pi's Bluetooth adapter, restart bluetooth.service,
+reset the adapter (rebind its driver, which reloads its firmware), and last,
+exit and let systemd restart the service. A good reading resets the ladder.
 
 "Adapter" is the Pi's own Bluetooth radio (hci0), which BlueZ calls the
 controller. Nothing here touches the charge controller.
 
 The outcomes are the `collector` measurement's `outcome` values, and the rungs
-(1 to 5, 0 for none) its `recovery_step`. The root commands run through `sudo -n`, allowed by name
+(1 to 6, 0 for none) its `recovery_step`. The root commands run through `sudo -n`, allowed by name
 in a sudoers file.
 """
 import asyncio
@@ -27,11 +27,15 @@ POWER_OFF_WAIT = 1.0  # between power off and power on; at once, power on fails
 POWER_ON_TRIES = 3  # a failed power on would leave the adapter off
 POWER_CYCLE_SETTLE = 3.0  # BlueZ needs a moment after power on
 BLUEZ_RESTART_SETTLE = 3.0
+ADAPTER_RESET_SETTLE = 3.0
 COMMAND_TIMEOUT = 30.0
 
 POWER_OFF = ("sudo", "-n", "bluetoothctl", "power", "off")
 POWER_ON = ("sudo", "-n", "bluetoothctl", "power", "on")
 RESTART_BLUEZ = ("sudo", "-n", "systemctl", "restart", "bluetooth")
+# Unbinds and binds the adapter's driver, then restarts bluetooth.service:
+# scripts/reset-bt-adapter.sh, installed under this name.
+RESET_ADAPTER = ("sudo", "-n", "/usr/local/sbin/solar-telemetry-reset-adapter")
 GET_THROTTLED = ("vcgencmd", "get_throttled")
 
 # The errors a reading can fail with. Anything else is a bug, not a failure to
@@ -54,11 +58,14 @@ class Step(enum.StrEnum):
     RETRY = "retry"
     POWER_CYCLE_ADAPTER = "power_cycle_adapter"
     RESTART_BLUEZ = "restart_bluez"
+    RESET_ADAPTER = "reset_adapter"
     EXIT = "exit"
 
 
 # The ladder, bottom first. A rung is its position from 1; 0 is none.
-LADDER = (Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.EXIT)
+LADDER = (
+    Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.RESET_ADAPTER, Step.EXIT,
+)
 
 
 class RecoveryExhausted(Exception):
@@ -139,6 +146,10 @@ async def recover(step: Step) -> None:
             log.warning("recovery: restarting bluetooth.service")
             await run(*RESTART_BLUEZ)
             await asyncio.sleep(BLUEZ_RESTART_SETTLE)
+        case Step.RESET_ADAPTER:
+            log.warning("recovery: resetting the Bluetooth adapter (rebinding its driver)")
+            await run(*RESET_ADAPTER)
+            await asyncio.sleep(ADAPTER_RESET_SETTLE)
         case Step.EXIT:
             raise RecoveryExhausted("every recovery step failed")
 

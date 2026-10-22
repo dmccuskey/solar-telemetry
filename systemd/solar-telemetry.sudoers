@@ -2,8 +2,10 @@
 # Install as /etc/sudoers.d/solar-telemetry, mode 0440, and check it with
 # `sudo visudo -cf /etc/sudoers.d/solar-telemetry`.
 #
-# With arguments given, sudo allows exactly these command lines and no others.
+# With arguments given, sudo allows exactly these command lines and no others;
+# "" allows the command with no arguments only.
 solar-telemetry ALL=(root) NOPASSWD: /usr/bin/bluetoothctl power off, \
                                      /usr/bin/bluetoothctl power on, \
                                      /usr/bin/systemctl restart bluetooth, \
+                                     /usr/local/sbin/solar-telemetry-reset-adapter "", \
                                      /usr/bin/systemctl restart influxdb
