@@ -127,15 +127,16 @@ Set `name` (the `controller` tag on every point, e.g. `garage`) and `address` (t
 
 ## 4. Allow the Recovery Commands
 
-Recovery power-cycles the Bluetooth adapter and restarts `bluetooth.service`, and restarts InfluxDB when writes keep failing. The sudoers file allows exactly those four command lines, and nothing else:
+Recovery power-cycles the Bluetooth adapter, restarts `bluetooth.service`, resets the adapter (a script that rebinds its driver), and restarts InfluxDB when writes keep failing. The sudoers file allows exactly those five command lines, and nothing else:
 
 ```bash
+sudo install -m 755 scripts/reset-bt-adapter.sh /usr/local/sbin/solar-telemetry-reset-adapter
 sudo install -m 440 systemd/solar-telemetry.sudoers /etc/sudoers.d/solar-telemetry
 sudo visudo -cf /etc/sudoers.d/solar-telemetry
 sudo -l -U solar-telemetry
 ```
 
-`visudo` prints `parsed OK`, and `sudo -l` lists the four commands.
+`visudo` prints `parsed OK`, and `sudo -l` lists the five commands.
 
 ## 5. Keep Connects Fast
 
@@ -264,4 +265,4 @@ git pull
 sudo systemctl restart solar-telemetry
 ```
 
-If `systemd/solar-telemetry.service` changed, install it again as in step 7 and run `sudo systemctl daemon-reload` before the restart. With the weather job, restart it too: `sudo systemctl restart solar-telemetry-weather` (and its unit, as in step 9).
+If `scripts/reset-bt-adapter.sh` or `systemd/solar-telemetry.sudoers` changed, install them again as in step 4. If `systemd/solar-telemetry.service` changed, install it again as in step 7 and run `sudo systemctl daemon-reload` before the restart. With the weather job, restart it too: `sudo systemctl restart solar-telemetry-weather` (and its unit, as in step 9).

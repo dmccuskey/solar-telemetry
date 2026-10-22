@@ -68,11 +68,13 @@ def test_outcomes_are_the_collector_values():
 def test_the_ladder_climbs_one_rung_per_failure():
     ladder = Ladder()
     steps, rungs = [], []
-    for _ in range(6):
+    for _ in range(7):
         steps.append(ladder.on_failure(Outcome.CONNECT_FAILED))
         rungs.append(ladder.rung)
-    assert steps == [Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.EXIT, Step.EXIT]
-    assert rungs == [1, 2, 3, 4, 5, 5]
+    assert steps == [
+        Step.RETRY, Step.RETRY, Step.POWER_CYCLE_ADAPTER, Step.RESTART_BLUEZ, Step.RESET_ADAPTER, Step.EXIT, Step.EXIT,
+    ]
+    assert rungs == [1, 2, 3, 4, 5, 6, 6]
 
 
 def test_a_good_reading_resets_the_ladder():
@@ -97,6 +99,7 @@ def test_bluez_busy_goes_straight_to_restarting_bluez():
     ladder = Ladder()
     assert ladder.on_failure(Outcome.BLUEZ_BUSY) is Step.RESTART_BLUEZ
     assert ladder.rung == 4
+    assert ladder.on_failure(Outcome.BLUEZ_BUSY) is Step.RESET_ADAPTER
     assert ladder.on_failure(Outcome.BLUEZ_BUSY) is Step.EXIT
 
 
@@ -139,6 +142,11 @@ def test_restart_bluez(commands):
     assert commands == [health.RESTART_BLUEZ]
 
 
+def test_reset_adapter(commands):
+    asyncio.run(health.recover(Step.RESET_ADAPTER))
+    assert commands == [health.RESET_ADAPTER]
+
+
 def test_exit_raises(commands):
     with pytest.raises(health.RecoveryExhausted):
         asyncio.run(health.recover(Step.EXIT))
@@ -146,7 +154,7 @@ def test_exit_raises(commands):
 
 
 def test_root_commands_never_prompt():
-    for command in (health.POWER_OFF, health.POWER_ON, health.RESTART_BLUEZ):
+    for command in (health.POWER_OFF, health.POWER_ON, health.RESTART_BLUEZ, health.RESET_ADAPTER):
         assert command[:2] == ("sudo", "-n")
 
 

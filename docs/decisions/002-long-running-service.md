@@ -1,6 +1,6 @@
 # ADR 002: A Long-Running Service with In-Process Recovery
 
-**Status:** Accepted; amended 2026-10-17 (see [Amendment: The Ladder in Detail](#amendment-2026-10-17-the-ladder-in-detail))
+**Status:** Accepted; amended 2026-10-17 (see [Amendment: The Ladder in Detail](#amendment-2026-10-17-the-ladder-in-detail)); the ladder and reboots amended by [ADR 006](006-reset-the-adapter.md) (2026-10-22)
 
 ## Context
 

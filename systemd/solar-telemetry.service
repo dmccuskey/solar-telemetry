@@ -3,10 +3,16 @@ Description=Read the solar charge controller over Bluetooth LE and write to Infl
 Documentation=https://github.com/dmccuskey/solar-telemetry/blob/main/docs/installation.md
 After=bluetooth.service influxdb.service
 Wants=bluetooth.service
-# No start limit: a dead adapter makes the service exit after its recovery
-# ladder, and systemd must keep restarting it rather than give up. The restart
-# delay below backs off instead.
-StartLimitIntervalSec=0
+# When even resetting the adapter fails, the service exits and systemd
+# restarts it, backing off (below). A 9th start within 4 hours reboots the Pi
+# instead (ADR 006): with the backoff, the 9th comes about 2 hours after the
+# first exit, so the Pi reboots at most once every 2 hours if the adapter
+# never comes back. The window is wider than that on purpose: at the 30-minute
+# delay, 2 hours hold only 4 starts. A reboot resets the count. The car being
+# away never exits the service.
+StartLimitIntervalSec=4h
+StartLimitBurst=8
+StartLimitAction=reboot
 
 [Service]
 Type=notify

@@ -67,16 +67,17 @@ Each cycle takes one reading. When it fails, the service classifies the failure,
 | 2 | retry | waits 5 s |
 | 3 | power-cycle the Pi's Bluetooth adapter: `bluetoothctl power off`, then `power on` (tried up to 3 times, 1 s apart) | waits 3 s |
 | 4 | restart `bluetooth.service` | waits 3 s |
-| 5 | exit with an error | systemd restarts the service |
+| 5 | reset the Bluetooth adapter: unbind and bind its driver, which reloads its firmware, then restart `bluetooth.service` (`solar-telemetry-reset-adapter`) | waits 3 s |
+| 6 | exit with an error | systemd restarts the service |
 
 - **One rung per failed attempt,** from the bottom. A good reading resets the ladder.
-- **BlueZ busy** ("in progress") goes straight to rung 4: restarting BlueZ is the only thing that clears it.
+- **BlueZ busy** ("in progress") goes straight to rung 4: restarting BlueZ clears a stuck BlueZ. If it comes back, the adapter itself has hung (on a Pi 3, the kernel logs `hci0: command ... tx timeout`), and rung 5 resets it.
 - **The car being away** is not a failure: no step, and it resets the ladder. The service tries again after the away interval: by default 5 minutes, the same as the usual interval.
 - **Undervoltage** changes nothing in the ladder, since no Bluetooth reset fixes power. It's logged with every failure, and recorded in `throttled`.
-- **After an exit,** systemd restarts the service after 30 seconds. If it keeps exiting, the delay grows to 30 minutes, and it never stops trying for good.
+- **After an exit,** systemd restarts the service after 30 seconds. If it keeps exiting, the delay grows to 30 minutes. The 9th start within 4 hours reboots the Pi instead, about 2 hours after the first exit ([ADR 006](decisions/006-reset-the-adapter.md)); after the reboot, the count starts over. So a dead adapter reboots the Pi at most once every 2 hours.
 - **The watchdog:** if the service stops pinging systemd for 3 minutes (a hang), systemd kills and restarts it.
 
-Recovery never restarts D-Bus or reboots the Pi. Those stay manual: `sudo systemctl restart dbus` (which disrupts other services), or `sudo reboot`.
+Recovery never restarts D-Bus. That stays manual: `sudo systemctl restart dbus` (which disrupts other services).
 
 ## When InfluxDB Is Down
 

@@ -24,7 +24,7 @@ The `solar_telemetry` package, one asyncio process. Its only dependency is [blea
 | `ble` | the Bluetooth client: find the controller by MAC address (then by a scan, which also counts the other devices in range), connect, read registers over Modbus, disconnect. Each step fails with its own error type: `DeviceNotFound`, `BluezBusy`, `AdapterError`, `ConnectFailed`, `ReadTimeout` ([ADR 001](decisions/001-own-ble-client.md)) |
 | `modbus` | building read requests (function 03h only) and checking replies: address, function, length, CRC16, exception replies |
 | `wanderer` | the controller's register map: the model, and the 35 words from 0x0100 parsed into the fields of a `charge_controller` point |
-| `health` | classifying a failure into an outcome, the recovery ladder, the recovery commands, and `vcgencmd get_throttled` ([ADR 002](decisions/002-long-running-service.md)) |
+| `health` | classifying a failure into an outcome, the recovery ladder, the recovery commands, and `vcgencmd get_throttled` ([ADR 002](decisions/002-long-running-service.md), [ADR 006](decisions/006-reset-the-adapter.md)) |
 | `influx` | line protocol, the bounded queue, and writing it to InfluxDB 1.x over HTTP, with no client library |
 | `service` | the main loop, the schedule, the config (TOML), and the systemd notifications and watchdog |
 | `weather` | the optional weather job, its own process: fetching Open-Meteo's sunlight and cloud cover for the config's location, and writing them through `influx` ([ADR 005](decisions/005-weather-from-open-meteo.md)) |
@@ -46,9 +46,9 @@ Reading and writing never run at the same time: the queue is written only betwee
 ## Safety Model
 
 - **Read-only toward the controller.** The client only sends Modbus reads (function 03h). `modbus` builds no other request, so the service can't change charging settings or the load output.
-- **Recovery is bounded.** Each rung of the ladder runs at most once per climb, with a wait after it. The last rung is exiting, not rebooting the Pi.
+- **Recovery is bounded.** Each rung of the ladder runs at most once per climb, with a wait after it. The last rung is exiting. The service never reboots the Pi itself: systemd does, when the service keeps exiting, at most once every 2 hours ([ADR 006](decisions/006-reset-the-adapter.md)).
 - **The car being away is not a failure.** No resets happen when the controller simply isn't in range.
-- **Least privilege.** The service runs as its own unprivileged user. As root it can run only four commands, allowed by name in a sudoers file ([Installation](installation.md#4-allow-the-recovery-commands)).
+- **Least privilege.** The service runs as its own unprivileged user. As root it can run only five commands, allowed by name in a sudoers file ([Installation](installation.md#4-allow-the-recovery-commands)).
 
 ## Tools
 

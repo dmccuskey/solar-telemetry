@@ -356,6 +356,14 @@ def test_bluez_busy_restarts_bluetooth_at_once(svc, controller, db, commands):
     assert commands == [health.RESTART_BLUEZ]
 
 
+def test_a_hung_adapter_is_reset_after_bluez(svc, controller, db, commands):
+    # 2026-10-22: the Pi 3's chip stopped answering; restarting BlueZ didn't help
+    controller.failures = [ble.BluezBusy("InProgress")] * 2
+    asyncio.run(svc.cycle())
+    assert outcomes(db) == [('"bluez_busy"', "4i"), ('"bluez_busy"', "5i"), ('"ok"', "0i")]
+    assert commands == [health.RESTART_BLUEZ, health.RESET_ADAPTER]
+
+
 def test_the_car_away_mid_climb_ends_the_cycle(svc, controller, db, commands):
     controller.failures = [ble.ConnectFailed("timeout"), ble.DeviceNotFound(ADDRESS, others=3)]
     assert asyncio.run(svc.cycle()) == 900
@@ -363,11 +371,11 @@ def test_the_car_away_mid_climb_ends_the_cycle(svc, controller, db, commands):
 
 
 def test_the_ladder_running_out_writes_and_raises(svc, controller, db, commands):
-    controller.failures = [ble.AdapterError("no adapter")] * 5
+    controller.failures = [ble.AdapterError("no adapter")] * 6
     with pytest.raises(health.RecoveryExhausted):
         asyncio.run(svc.run())
-    assert outcomes(db) == [('"adapter_error"', f"{rung}i") for rung in range(1, 6)]
-    assert commands == [health.POWER_OFF, health.POWER_ON, health.RESTART_BLUEZ]
+    assert outcomes(db) == [('"adapter_error"', f"{rung}i") for rung in range(1, 7)]
+    assert commands == [health.POWER_OFF, health.POWER_ON, health.RESTART_BLUEZ, health.RESET_ADAPTER]
     assert svc.systemd.states[0] == "READY=1" and svc.systemd.states[-1] == "STOPPING=1"
 
 

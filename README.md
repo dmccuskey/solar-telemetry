@@ -15,7 +15,7 @@ Not affiliated with, or endorsed by, Renogy.
 - Reads a Renogy Wanderer (and controllers that share its Modbus registers, such as the Rover and Adventurer) through a BT-1 Bluetooth module
 - Writes battery, solar and load voltage, current and power, the charging state, faults and the controller's lifetime totals to InfluxDB 1.x, with the unit in each field's name
 - Read-only toward the controller: it only reads registers, so it can't change charging settings
-- Recovers from Bluetooth failures in seconds, with a fix for each kind: retry, power-cycle the adapter, restart BlueZ, and last, exit for systemd to restart it
+- Recovers from Bluetooth failures in seconds, with a fix for each kind: retry, power-cycle the adapter, restart BlueZ, reset the adapter, and last, exit for systemd to restart it (and reboot the Pi, if it keeps failing for 2 hours)
 - Tells the controller being out of range (the car is away) from a broken Bluetooth stack, and resets nothing when it's only away
 - Logs undervoltage with each failure: on a Pi 3, a weak power supply looks like a Bluetooth problem
 - Keeps a week of readings in memory while InfluxDB is down, and writes them with their original timestamps once it's back
@@ -88,6 +88,7 @@ INFO solar_telemetry.service: battery 13.6 V, 100 %, floating; pv 12 W; connect 
 Allow the recovery commands, start bluetoothd without its GAP plugin (it makes every other connect 10 times slower), then install and start the unit:
 
 ```bash
+sudo install -m 755 scripts/reset-bt-adapter.sh /usr/local/sbin/solar-telemetry-reset-adapter
 sudo install -m 440 systemd/solar-telemetry.sudoers /etc/sudoers.d/solar-telemetry
 sudo install -D -m 644 systemd/bluetooth-noplugin-gap.conf /etc/systemd/system/bluetooth.service.d/noplugin-gap.conf
 sudo systemctl daemon-reload && sudo systemctl restart bluetooth
@@ -118,7 +119,7 @@ Everything is listed on the [documentation home](docs/README.md).
 
 ## Safety
 
-The service only reads from the controller, never writes. As root it runs only the four commands in [its sudoers file](systemd/solar-telemetry.sudoers): powering the Bluetooth adapter off and on, and restarting `bluetooth` and `influxdb`.
+The service only reads from the controller, never writes. As root it runs only the five commands in [its sudoers file](systemd/solar-telemetry.sudoers): powering the Bluetooth adapter off and on, resetting it (rebinding its driver), and restarting `bluetooth` and `influxdb`.
 
 ## Acknowledgements
 
