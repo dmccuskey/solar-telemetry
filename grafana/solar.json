@@ -229,7 +229,7 @@
               "type": "value",
               "options": {
                 "0": {
-                  "text": "deactivated",
+                  "text": "not charging",
                   "color": "text",
                   "index": 0
                 },
@@ -994,7 +994,7 @@
               "type": "value",
               "options": {
                 "0": {
-                  "text": "deactivated",
+                  "text": "not charging",
                   "color": "text",
                   "index": 0
                 },
@@ -1789,7 +1789,7 @@
           },
           "refId": "A",
           "rawQuery": true,
-          "query": "SELECT min(\"battery_v\") AS \"Min\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT max(\"battery_v\") AS \"Max\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         },
@@ -1800,7 +1800,7 @@
           },
           "refId": "B",
           "rawQuery": true,
-          "query": "SELECT max(\"battery_v\") AS \"Max\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
+          "query": "SELECT min(\"battery_v\") AS \"Min\" FROM \"charge_controller\" WHERE \"controller\" =~ /^$controller$/ AND $timeFilter GROUP BY time(1d) fill(none) tz('$tz')",
           "resultFormat": "time_series",
           "alias": "$col"
         }
