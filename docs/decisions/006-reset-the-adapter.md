@@ -1,6 +1,6 @@
 # ADR 006: Reset a Hung Adapter, and Let systemd Reboot
 
-**Status:** Accepted (2026-10-22). Amends [ADR 002](002-long-running-service.md): the ladder gets a rung, and a reboot is no longer manual only.
+**Status:** Accepted (2026-10-22); amended 2026-10-31 (see [Amendment: An Unbound Adapter](#amendment-2026-10-31-an-unbound-adapter)). Amends [ADR 002](002-long-running-service.md): the ladder gets a rung, and a reboot is no longer manual only.
 
 ## Context
 
@@ -30,3 +30,10 @@ The Raspberry Pi OS of old had `hciuart.service` to restart; trixie has none: th
 - A hang like 2026-10-22's should cost one cycle, if the rebind cures it: the reset comes about 20 s after the first failure. If it doesn't, the Pi reboots about 2 hours later, and then at most every 2 hours while the adapter stays dead. A reboot loses the journal, which isn't persistent on the Pi: to keep a trace of a reboot loop, make it persistent (`Storage=persistent`).
 - Installing and updating now include the script (installation step 4), and the sudoers file has five commands.
 - `recovery_step` 5 changed meaning: before 2026-10-22, it was the exit.
+
+## Amendment 2026-10-31: An Unbound Adapter
+
+A controlled test (the driver unbound by hand) showed the reset finds nothing to reset when `hci0` is gone: it read the device and driver from `hci0`, so it logged "nothing to reset" and exited. A reset that fails between its unbind and its bind would leave the adapter the same way, and only the start-limit reboot, about 2 hours later, would bring it back.
+
+- **The script remembers the device it resets,** in `/run/solar-telemetry-reset-adapter` (until the next boot, which binds the driver anyway), before unbinding it.
+- **With no `hci0`, it binds a known device that has no driver:** the remembered one, or else the Pi's on-board chip (`serial0-0` on `hci_uart_bcm`). A USB adapter unbound before any reset isn't known; the reboot still covers it.
