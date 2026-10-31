@@ -1,5 +1,5 @@
 [Unit]
-Description=Run Network Watchdog every 5 minutes
+Description=Run the network watchdog every 5 minutes
 
 [Timer]
 OnBootSec=5min

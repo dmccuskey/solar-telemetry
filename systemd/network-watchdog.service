@@ -1,7 +1,9 @@
 [Unit]
-Description=Network Watchdog Recovery Service
-After=network.target
+Description=Network watchdog: reconnects Wi-Fi, reboots only for a stuck Wi-Fi chip
+After=NetworkManager.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/network-watchdog.sh
+# A failed check takes about 2 minutes at most (pings, reconnect, scan).
+TimeoutStartSec=5min

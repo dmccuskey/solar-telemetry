@@ -79,6 +79,17 @@ Each cycle takes one reading. When it fails, the service classifies the failure,
 
 Recovery never restarts D-Bus. That stays manual: `sudo systemctl restart dbus` (which disrupts other services).
 
+## When the Network Is Down
+
+The collector doesn't need the network: InfluxDB is on the same Pi, so readings go on through an outage and Grafana shows them once it's back. The optional `network-watchdog` ([installation](installation.md#the-network-watchdog)) checks every 5 minutes, from 5 minutes after boot, by pinging the default route's gateway. After each failed check it reconnects Wi-Fi (`nmcli device connect wlan0`). It reboots the Pi only when all of these hold, since a reboot fixes only the Pi's own Wi-Fi, never a router that's off:
+
+1. **The outage has lasted:** 6 failed checks in a row, about 30 minutes. The count is kept in `/run/network-watchdog/outage`, so a reboot starts it over; a good check clears it.
+2. **The reconnect failed,** on the 6th check too.
+3. **The Pi looks at fault:** the kernel logged `brcmfmac` errors since the outage began, or a forced Wi-Fi scan fails or sees no network at all. A scan that sees our network means the router or the gateway is at fault; one that sees only the neighbours' means the router is off. Either way it waits and checks again. The scan runs only on a long outage: it shares the chip with the collector's Bluetooth.
+4. **No reboot by the watchdog in the last 24 hours:** the time of the last one is in `/var/lib/network-watchdog/last-reboot`.
+
+Each reboot is also written to `/var/lib/network-watchdog/reboots.log`, since the journal doesn't survive a reboot. Each check's outcome is in `journalctl -t network-watchdog`.
+
 ## When InfluxDB Is Down
 
 InfluxDB runs on the same Pi. When a write fails, the points stay in a queue in memory and are written, oldest first and with their original timestamps, once InfluxDB answers again.
