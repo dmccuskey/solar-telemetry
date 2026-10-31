@@ -67,7 +67,7 @@ Each cycle takes one reading. When it fails, the service classifies the failure,
 | 2 | retry | waits 5 s |
 | 3 | power-cycle the Pi's Bluetooth adapter: `bluetoothctl power off`, then `power on` (tried up to 3 times, 1 s apart) | waits 3 s |
 | 4 | restart `bluetooth.service` | waits 3 s |
-| 5 | reset the Bluetooth adapter: unbind and bind its driver, which reloads its firmware, then restart `bluetooth.service` (`solar-telemetry-reset-adapter`) | waits 3 s |
+| 5 | reset the Bluetooth adapter: unbind and bind its driver, which reloads its firmware, then restart `bluetooth.service` (`solar-telemetry-reset-adapter`); with no `hci0` (its driver unbound), bind the device it last reset, or the Pi's on-board chip | waits 3 s |
 | 6 | exit with an error | systemd restarts the service |
 
 - **One rung per failed attempt,** from the bottom. A good reading resets the ladder.
