@@ -64,7 +64,7 @@ sudo reboot
 
 ### The Network Watchdog
 
-Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it restarts `wlan0`, and if the network is still down, it reboots the Pi. It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above). Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
+Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it reconnects Wi-Fi through NetworkManager. It reboots the Pi only when its own Wi-Fi looks stuck, at most once a day: how it decides is in [Operations](operations.md#when-the-network-is-down). It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above). Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
 
 ```bash
 cd /opt/solar-telemetry
@@ -74,7 +74,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now network-watchdog.timer
 ```
 
-Its log lines are in `journalctl -t network-watchdog`.
+Its log lines are in `journalctl -t network-watchdog`; its reboots also in `/var/lib/network-watchdog/reboots.log`, which outlasts the journal.
 
 ## 1. Create the Service User
 
