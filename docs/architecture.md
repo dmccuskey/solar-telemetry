@@ -74,7 +74,7 @@ The collector started as a systemd timer running a script, which ran [renogy-bt]
 - **April 25:** `reboot-the-world.sh`, the full manual recovery: stop the timer, kill leftover processes, restart `bluetooth` (and `dbus` with `--nuclear`), bounce `hci0`, poll once.
 - **May 3:** less stable after the Pi was moved, so recovery should act sooner and harder. But the script couldn't restart the Bluetooth stack without risking its own run, and had one chance every 5 minutes.
 - **May 8:** the controller being away and a broken Bluetooth stack gave the same errors. Telling them apart by whether a scan sees other devices, and a long-running service with its own recovery, were the ideas that became [ADR 002](decisions/002-long-running-service.md).
-- **October 17:** the rewrite: the long-running service, with its own Bluetooth client ([ADR 001](decisions/001-own-ble-client.md)), replaced the timer. The earlier collector's files stay in this repository until it's retired.
+- **October 17:** the rewrite: the long-running service, with its own Bluetooth client ([ADR 001](decisions/001-own-ble-client.md)), replaced the timer. The timer's files were removed in November, after two weeks of the service.
 
 ## Decisions
 
