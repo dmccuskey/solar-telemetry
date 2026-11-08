@@ -154,7 +154,7 @@ The journal shows `Excluding (cli) gap`. The drop-in replaces the unit's `ExecSt
 
 ## 6. Try It
 
-The controller takes one Bluetooth connection at a time, so stop anything else that reads it first (the earlier collector: `sudo systemctl stop renogy-poll.timer`). Then run the service by hand, as its user:
+The controller takes one Bluetooth connection at a time, so stop anything else that reads it first. Then run the service by hand, as its user:
 
 ```bash
 sudo -u solar-telemetry /opt/solar-telemetry/.venv/bin/solar-telemetry /etc/solar-telemetry/config.toml
@@ -239,22 +239,6 @@ journalctl -u solar-telemetry-weather -f
 ```
 
 A failed fetch is a warning in its journal, and the next fetch fills the gap.
-
-## Switching from the Timer
-
-The service replaces `renogy-poll.timer`. Only one of them can run, since they share the controller's one connection:
-
-```bash
-sudo systemctl disable --now renogy-poll.timer
-sudo systemctl enable --now solar-telemetry
-```
-
-Going back is the reverse:
-
-```bash
-sudo systemctl disable --now solar-telemetry
-sudo systemctl enable --now renogy-poll.timer
-```
 
 ## Updating
 

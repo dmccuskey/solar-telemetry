@@ -4,7 +4,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 
 ## Start
 
-- [Installation](installation.md): preparing the Pi (Wi-Fi, watchdogs, power), then the full setup, under its own user, with its sudoers file, Bluetooth drop-in and systemd unit; the Grafana dashboard; the optional weather job; switching from the earlier timer, and updating
+- [Installation](installation.md): preparing the Pi (Wi-Fi, watchdogs, power), then the full setup, under its own user, with its sudoers file, Bluetooth drop-in and systemd unit; the Grafana dashboard; the optional weather job; and updating
 
 ## Use
 
@@ -38,19 +38,15 @@ systemd/
 ├── solar-telemetry-weather.service  optional: the weather job's unit
 ├── bluetooth-noplugin-gap.conf  a drop-in for bluetooth.service: bluetoothd without its GAP plugin, for fast connects
 ├── network-watchdog.service  optional: reconnects Wi-Fi, reboots only for a stuck Wi-Fi chip, at most once a day
-├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
-├── renogy-poll.service     the earlier collector, run once (oneshot, under flock)
-└── renogy-poll.timer       every 5 minutes
+└── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
 grafana/
 ├── datasource.yaml         the solar data source, for Grafana's provisioning folder
 └── solar.json              the dashboard, to import
 scripts/
 ├── dev.sh                  development loop: test here, deploy to the Pi, run there, read the logs
 ├── network-watchdog.sh     run by network-watchdog.service
-└── reboot-the-world.sh     the earlier collector's manual recovery for a wedged Bluetooth stack
+└── reset-bt-adapter.sh     rebinds the Bluetooth chip's driver, for the service's recovery
 tools/                      read_once, record_frames, time_recovery, scan_ble, gatt_dump: see Architecture
-renogy_poll_to_influx.py    the earlier collector: one reading through renogy-bt, written to InfluxDB
-my_wanderer.ini.example     the earlier collector's config; my_wanderer.ini is gitignored
 docs/
 ├── README.md               this page
 ├── installation.md
@@ -60,5 +56,3 @@ docs/
 ├── architecture.md
 └── decisions/              architecture decision records
 ```
-
-The earlier collector's files (`renogy_poll_to_influx.py`, `my_wanderer.ini.example`, the `renogy-poll` units and `reboot-the-world.sh`) go once the service has run for a while.

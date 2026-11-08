@@ -106,7 +106,7 @@ To update later, run `git pull` in `/opt/solar-telemetry`, then `sudo systemctl 
 
 ## Documentation
 
-- [Installation](docs/installation.md): the full setup, step by step, and switching from the earlier timer-based collector
+- [Installation](docs/installation.md): the full setup, step by step
 - [Operations](docs/operations.md): running it day to day, the logs, recovery, and what to do when it stops reading
 - [Data](docs/data.md): the measurements and fields written to InfluxDB, with example queries
 - [Architecture](docs/architecture.md): how it works inside, and the decisions behind it
@@ -129,4 +129,4 @@ The weather data is from [Open-Meteo](https://open-meteo.com), under [CC BY 4.0]
 
 ## License
 
-solar-telemetry is released under the [MIT License](LICENSE). The earlier collector, still in this repository until it's retired, runs renogy-bt (GPL-3.0) as a separate program.
+solar-telemetry is released under the [MIT License](LICENSE).
