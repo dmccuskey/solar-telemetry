@@ -90,6 +90,14 @@ The collector doesn't need the network: InfluxDB is on the same Pi, so readings 
 
 Each reboot is also written to `/var/lib/network-watchdog/reboots.log`, since the journal doesn't survive a reboot. Each check's outcome is in `journalctl -t network-watchdog`.
 
+## When the Pi Can't Be Reached
+
+Sometimes the Pi runs and collects, but other machines can't reach it: `ssh` and `ping` give "No route to host", and Grafana shows "No data" once its machine's cached entry for the Pi lapses. Seen once, after the router's scheduled weekly restart: the router went on passing the Pi's own traffic, but no longer passed broadcasts to its Wi-Fi clients (phones too), so nobody's ARP lookup reached them. The readings aren't lost: they're in the Pi's InfluxDB, and Grafana shows them once it can reach the Pi again.
+
+The optional `reachability-check`, on another machine ([installation](installation.md#the-reachability-check)), asks for the Pi by broadcast ARP every 5 minutes. After 2 checks in a row without an answer (one can be a reboot) it logs that the Pi `doesn't answer broadcast ARP`, again every hour while that lasts, and when it answers again. Read its log with `journalctl -t reachability-check`; the changes are also in `/var/lib/reachability-check/changes.log`.
+
+To tell the Pi from the router, ask for another Wi-Fi device the same way, a phone that's awake for instance: `sudo arping -c 3 <its address>`. If it doesn't answer either, it's the router: restarting it cured it. A reboot of the Pi doesn't help then. To reach the Pi meanwhile, give the other machine its hardware address (`ip neigh` there shows it while still cached, or the Pi's `ip link show wlan0`), so it skips the lookup: `sudo ip neigh replace <Pi address> lladdr <hardware address> dev eth0 nud permanent`. Remove the entry afterwards with `sudo ip neigh del <Pi address> dev eth0`.
+
 ## When InfluxDB Is Down
 
 InfluxDB runs on the same Pi. When a write fails, the points stay in a queue in memory and are written, oldest first and with their original timestamps, once InfluxDB answers again.

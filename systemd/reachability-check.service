@@ -1,0 +1,11 @@
+[Unit]
+Description=Reachability check: can the Pi be found on the network (broadcast ARP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/reachability-check
+ExecStart=/usr/local/bin/reachability-check.sh
+# Each host takes up to 5 seconds.
+TimeoutStartSec=2min

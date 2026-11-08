@@ -64,7 +64,7 @@ sudo reboot
 
 ### The Network Watchdog
 
-Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it reconnects Wi-Fi through NetworkManager. It reboots the Pi only when its own Wi-Fi looks stuck, at most once a day: how it decides is in [Operations](operations.md#when-the-network-is-down). It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above). Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
+Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it reconnects Wi-Fi through NetworkManager. It reboots the Pi only when its own Wi-Fi looks stuck, at most once a day: how it decides is in [Operations](operations.md#when-the-network-is-down). It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above): [the reachability check](#the-reachability-check) does that. Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
 
 ```bash
 cd /opt/solar-telemetry
@@ -75,6 +75,22 @@ sudo systemctl enable --now network-watchdog.timer
 ```
 
 Its log lines are in `journalctl -t network-watchdog`; its reboots also in `/var/lib/network-watchdog/reboots.log`, which outlasts the journal.
+
+### The Reachability Check
+
+Optional, and installed on **another machine** on the same network, preferably a wired one, such as the one running Grafana. A Wi-Fi router can stop passing broadcasts to its Wi-Fi clients while their own traffic still works. The Pi then goes on collecting and reaches the router, so its network watchdog sees nothing wrong, but other machines get "No route to host" once their cached entry for it lapses. Every 5 minutes, `reachability-check` asks for the Pi by broadcast ARP (`arping`, in Debian's `iputils-arping`), which uses no cache, and logs when it stops answering and when it answers again. It only logs; it changes nothing. On that machine, from a copy of the repository:
+
+```bash
+sudo apt install iputils-arping    # if `command -v arping` finds nothing
+sudo install -m 755 scripts/reachability-check.sh /usr/local/bin/
+sudo install -m 644 systemd/reachability-check.service systemd/reachability-check.timer /etc/systemd/system/
+echo 'TARGETS="192.168.1.50"' | sudo tee /etc/default/reachability-check    # the Pi's address; several, space-separated
+sudo systemctl daemon-reload
+sudo systemctl enable --now reachability-check.timer
+sudo systemctl start reachability-check.service; journalctl -t reachability-check -n 5    # a first check: no output means it answered
+```
+
+What it logs, and what to do then, is in [Operations](operations.md#when-the-pi-cant-be-reached).
 
 ## 1. Create the Service User
 

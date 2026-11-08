@@ -8,7 +8,7 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 
 ## Use
 
-- [Operations](operations.md): running the service, its logs, how it recovers, InfluxDB outages, and what to check when it stops reading
+- [Operations](operations.md): running the service, its logs, how it recovers, network and InfluxDB outages, a Pi that can't be reached, and what to check when it stops reading
 - [Data](data.md): the `charge_controller` and `collector` measurements, the weather job's `weather` and `weather_daily`, every field, and example queries
 - [Hardware](hardware.md): the controller's BT module and its GATT layout, checking the Bluetooth signal, and the Pi's power supply
 
@@ -39,6 +39,8 @@ systemd/
 ├── bluetooth-noplugin-gap.conf  a drop-in for bluetooth.service: bluetoothd without its GAP plugin, for fast connects
 ├── network-watchdog.service  optional: reconnects Wi-Fi, reboots only for a stuck Wi-Fi chip, at most once a day
 ├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
+├── reachability-check.service  optional, on another machine: can the Pi still be found (broadcast ARP)
+├── reachability-check.timer  every 5 minutes, from 5 minutes after boot
 ├── renogy-poll.service     the earlier collector, run once (oneshot, under flock)
 └── renogy-poll.timer       every 5 minutes
 grafana/
@@ -47,6 +49,7 @@ grafana/
 scripts/
 ├── dev.sh                  development loop: test here, deploy to the Pi, run there, read the logs
 ├── network-watchdog.sh     run by network-watchdog.service
+├── reachability-check.sh   run by reachability-check.service
 └── reboot-the-world.sh     the earlier collector's manual recovery for a wedged Bluetooth stack
 tools/                      read_once, record_frames, time_recovery, scan_ble, gatt_dump: see Architecture
 renogy_poll_to_influx.py    the earlier collector: one reading through renogy-bt, written to InfluxDB

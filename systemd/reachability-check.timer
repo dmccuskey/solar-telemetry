@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the reachability check every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=reachability-check.service
+
+[Install]
+WantedBy=timers.target
