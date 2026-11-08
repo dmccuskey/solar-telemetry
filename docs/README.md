@@ -4,11 +4,11 @@ New here? Start with the [Quick Start](../README.md#quick-start).
 
 ## Start
 
-- [Installation](installation.md): preparing the Pi (Wi-Fi, watchdogs, power), then the full setup, under its own user, with its sudoers file, Bluetooth drop-in and systemd unit; the Grafana dashboard; the optional weather job; and updating
+- [Installation](installation.md): preparing the Pi (Wi-Fi, watchdogs, power, and a reachability check from another machine), then the full setup, under its own user, with its sudoers file, Bluetooth drop-in and systemd unit; the Grafana dashboard; the optional weather job; and updating
 
 ## Use
 
-- [Operations](operations.md): running the service, its logs, how it recovers, InfluxDB outages, and what to check when it stops reading
+- [Operations](operations.md): running the service, its logs, how it recovers, network and InfluxDB outages, a Pi that can't be reached, and what to check when it stops reading
 - [Data](data.md): the `charge_controller` and `collector` measurements, the weather job's `weather` and `weather_daily`, every field, and example queries
 - [Hardware](hardware.md): the controller's BT module and its GATT layout, checking the Bluetooth signal, and the Pi's power supply
 
@@ -38,13 +38,16 @@ systemd/
 ├── solar-telemetry-weather.service  optional: the weather job's unit
 ├── bluetooth-noplugin-gap.conf  a drop-in for bluetooth.service: bluetoothd without its GAP plugin, for fast connects
 ├── network-watchdog.service  optional: reconnects Wi-Fi, reboots only for a stuck Wi-Fi chip, at most once a day
-└── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
+├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
+├── reachability-check.service  optional, on another machine: can the Pi still be found (broadcast ARP)
+└── reachability-check.timer  every 5 minutes, from 5 minutes after boot
 grafana/
 ├── datasource.yaml         the solar data source, for Grafana's provisioning folder
 └── solar.json              the dashboard, to import
 scripts/
 ├── dev.sh                  development loop: test here, deploy to the Pi, run there, read the logs
 ├── network-watchdog.sh     run by network-watchdog.service
+├── reachability-check.sh   run by reachability-check.service
 └── reset-bt-adapter.sh     rebinds the Bluetooth chip's driver, for the service's recovery
 tools/                      read_once, record_frames, time_recovery, scan_ble, gatt_dump: see Architecture
 docs/
