@@ -37,6 +37,7 @@ systemd/
 ├── solar-telemetry.sudoers the root commands its recovery may run, for /etc/sudoers.d
 ├── solar-telemetry-weather.service  optional: the weather job's unit
 ├── bluetooth-noplugin-gap.conf  a drop-in for bluetooth.service: bluetoothd without its GAP plugin, for fast connects
+├── journald-persistent.conf  a drop-in for systemd-journald: keep the journal across reboots, capped at 200 MB
 ├── network-watchdog.service  optional: reconnects Wi-Fi, reboots only for a stuck Wi-Fi chip, at most once a day
 ├── network-watchdog.timer  every 5 minutes, from 5 minutes after boot
 ├── reachability-check.service  optional, on another machine: can the Pi still be found (broadcast ARP)
