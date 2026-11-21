@@ -53,7 +53,7 @@ INFO solar_telemetry.service: controller is back
 | `InfluxDB writes work again after <n> failed: ...` | the outage is over, and the queue was written |
 | `every recovery step failed: exiting, for systemd to restart the service` | the ladder ran out (an error); systemd restarts the service |
 
-**Keep the journal across reboots:** on Raspberry Pi OS the journal may be kept in memory only, so a reboot loses the logs from before it. To keep them, set `Storage=persistent` in `/etc/systemd/journald.conf` and run `sudo systemctl restart systemd-journald`.
+**Keep the journal across reboots:** Raspberry Pi OS keeps the journal in memory only, so a reboot loses the logs from before it. To keep them, install the drop-in in [Installation](installation.md#a-journal-that-survives-reboots); then `journalctl -b -1` reads the boot before this one.
 
 The `collector` measurement in InfluxDB has the same story as numbers, one point per attempt, kept as long as the readings: see [Data: collector](data.md#collector).
 
@@ -88,7 +88,7 @@ The collector doesn't need the network: InfluxDB is on the same Pi, so readings 
 3. **The Pi looks at fault:** the kernel logged `brcmfmac` errors since the outage began, or a forced Wi-Fi scan fails or sees no network at all. A scan that sees our network means the router or the gateway is at fault; one that sees only the neighbours' means the router is off. Either way it waits and checks again. The scan runs only on a long outage: it shares the chip with the collector's Bluetooth.
 4. **No reboot by the watchdog in the last 24 hours:** the time of the last one is in `/var/lib/network-watchdog/last-reboot`.
 
-Each reboot is also written to `/var/lib/network-watchdog/reboots.log`, since the journal doesn't survive a reboot. Each check's outcome is in `journalctl -t network-watchdog`.
+Each reboot is also written to `/var/lib/network-watchdog/reboots.log`, which outlasts the journal even where it's kept in memory only. Each check's outcome is in `journalctl -t network-watchdog`.
 
 ## When the Pi Can't Be Reached
 

@@ -62,6 +62,21 @@ printf '[Manager]\nRuntimeWatchdogSec=1min\n' | sudo tee /etc/systemd/system.con
 sudo reboot
 ```
 
+### A Journal That Survives Reboots
+
+Raspberry Pi OS keeps the systemd journal in memory only (`/usr/lib/systemd/journald.conf.d/40-rpi-volatile-storage.conf`), so a reboot loses the logs from before it, the ones that say why it rebooted. A drop-in that sorts after the OS's keeps it on the SD card, capped at 200 MB (about 10 days on this Pi), and written out every minute. Once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
+
+```bash
+sudo mkdir -p /etc/systemd/journald.conf.d
+sudo install -m 644 /opt/solar-telemetry/systemd/journald-persistent.conf /etc/systemd/journald.conf.d/60-persistent.conf
+sudo systemctl restart systemd-journald
+sudo journalctl --flush                   # moves it from memory to /var/log/journal
+journalctl --header | grep 'File path'    # under /var/log/journal
+journalctl --disk-usage
+```
+
+No reboot needed, and nothing else restarts. Without the flush, journald goes on writing to memory (`/run/log/journal`) until the next boot. `journalctl --list-boots` lists the boots kept; `journalctl -b -1` reads the one before this.
+
 ### The Network Watchdog
 
 Optional. Every 5 minutes, `network-watchdog` pings the router; if that fails, it reconnects Wi-Fi through NetworkManager. It reboots the Pi only when its own Wi-Fi looks stuck, at most once a day: how it decides is in [Operations](operations.md#when-the-network-is-down). It can't see a Pi that reaches the router but isn't reachable from other machines (the broadcasts above): [the reachability check](#the-reachability-check) does that. Install it once the code is in `/opt/solar-telemetry` ([step 2](#2-get-the-code)):
