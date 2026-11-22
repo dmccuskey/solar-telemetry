@@ -232,6 +232,28 @@ The dashboard, `grafana/solar.json`, is imported by hand, so it stays editable i
 
 After changing the dashboard in Grafana, export it again (**Export › Export as JSON**, without "Export for sharing externally") over `grafana/solar.json`.
 
+### Alerts
+
+Optional: Grafana's alerting (Grafana 11 or later) pushes a notification to your phone through [ntfy](https://ntfy.sh) when the battery runs down or the collector goes quiet. `grafana/alerting.yaml` holds three rules, checked every 5 minutes:
+
+| rule | fires when | for |
+|---|---|---|
+| Battery low | the highest `battery_v` of the last 3 hours is below 12.4 V (about 75% for a flooded battery at rest) | all year: the sun or a tender should never leave it there |
+| Tender stopped | the highest `battery_v` of the last 6 hours is below 13.0 V | a battery on a tender, which floats at about 13.5 V: it warns about a day before "Battery low". Outside, a battery at rest (12.7–12.9 V) trips it every night: set `isPaused: true` |
+| Collector silent | no `collector` points for 30 minutes, for 30 minutes more, or InfluxDB can't be reached | always. The car being away isn't silence: the service writes `not_found` then |
+
+Taking the highest reading means a dip from the car's own loads, which lasts minutes, doesn't count, and one good reading clears the alert. With no readings at all, only "Collector silent" fires. While an alert fires, a reminder comes every 12 hours, and a message when it clears.
+
+Install the ntfy app on your phone and subscribe to a topic. On the public server, ntfy.sh, anyone who knows a topic's name can read it, so make the name long and random (`openssl rand -hex 16`). Then put the topic in the file and install it beside the data source, readable only by Grafana:
+
+```bash
+sed 's/NTFY_TOPIC/solar-0123456789abcdef/' grafana/alerting.yaml |
+  sudo install -o root -g grafana -m 640 /dev/stdin /etc/grafana/provisioning/alerting/solar.yaml
+sudo systemctl restart grafana-server
+```
+
+The rules show under **Alerting › Alert rules**, in the folder "Solar". To check the phone gets the topic's pushes, send one by hand: `curl -d test https://ntfy.sh/solar-0123456789abcdef`. The file sets Grafana's whole notification policy: if you already have other alerts, merge its `policies` into yours instead. For your own ntfy server, change the URL's `https://ntfy.sh`; the file uses ntfy's `grafana` template, which turns Grafana's message into the push's title and text.
+
 ## 9. Add the Weather
 
 Optional: sunlight, cloud cover, precipitation and humidity for where the panel is, every 15 minutes, and a daily forecast, from [Open-Meteo](https://open-meteo.com) ([ADR 005](decisions/005-weather-from-open-meteo.md)). It runs as a second service, so the Pi needs internet access, but the readings never depend on it.

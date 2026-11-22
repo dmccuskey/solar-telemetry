@@ -43,6 +43,7 @@ systemd/
 ├── reachability-check.service  optional, on another machine: can the Pi still be found (broadcast ARP)
 └── reachability-check.timer  every 5 minutes, from 5 minutes after boot
 grafana/
+├── alerting.yaml           alerts for a low battery or a silent collector, pushed by ntfy
 ├── datasource.yaml         the solar data source, for Grafana's provisioning folder
 └── solar.json              the dashboard, to import
 scripts/
