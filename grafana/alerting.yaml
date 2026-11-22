@@ -1,0 +1,145 @@
+# Grafana alerts for the battery and the collector, pushed to the phone by ntfy.
+# Loaded at Grafana's startup, like datasource.yaml; it needs the `solar` data
+# source. Install: replace NTFY_TOPIC with your ntfy topic (on ntfy.sh, a long
+# random one: the topic is the only secret), then copy to
+# /etc/grafana/provisioning/alerting/solar.yaml and restart grafana-server.
+# See docs/installation.md, "Alerts".
+#
+# The notification policy replaces Grafana's whole policy tree: if you have
+# other alerts, merge it into yours instead.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: ntfy
+    receivers:
+      - uid: solar-ntfy
+        type: webhook
+        settings:
+          # ntfy's `grafana` template reads Grafana's payload: the title below
+          # becomes the push's title, the message its text.
+          url: https://ntfy.sh/NTFY_TOPIC?template=grafana&priority=high
+          httpMethod: POST
+          title: >-
+            {{ if eq .Status "firing" }}Solar: {{ .CommonLabels.alertname }}{{ else }}Solar: {{ .CommonLabels.alertname }}, resolved{{ end }}
+          message: >-
+            {{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ end }}
+
+policies:
+  - orgId: 1
+    receiver: ntfy
+    group_by: [grafana_folder, alertname]
+    group_wait: 30s
+    group_interval: 5m
+    # A reminder twice a day while an alert fires; a message when it clears.
+    repeat_interval: 12h
+
+groups:
+  - orgId: 1
+    name: solar
+    folder: Solar
+    interval: 5m
+    rules:
+      # The highest reading over 3 hours, so the car's own loads, which pull
+      # the voltage down for minutes, don't count, and one good reading clears
+      # it. 12.4 V at rest is about 75% for a flooded battery. Year-round: the
+      # sun or a tender should never leave it there for 3 hours.
+      - uid: solar-battery-low
+        title: Battery low
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 10800, to: 0 }
+            datasourceUid: solar
+            model:
+              refId: A
+              rawQuery: true
+              resultFormat: time_series
+              query: SELECT max("battery_v") FROM "charge_controller" WHERE $timeFilter
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{ evaluator: { type: lt, params: [12.4] } }]
+        # No readings (the car away, the Pi silent) isn't a low battery: the
+        # "Collector silent" rule covers a silent Pi.
+        noDataState: OK
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: >-
+            The battery's highest in 3 h: {{ printf "%.1f" $values.B.Value }} V (alerts below 12.4 V).
+
+      # Winter, on a battery tender: it floats at about 13.5 V, and once it
+      # stops the battery falls below 13.0 V within an hour or two, about a day
+      # before "Battery low". Outside it would fire every night (a battery at
+      # rest is 12.7-12.9 V), so pause it when the car goes back out:
+      # isPaused: true.
+      - uid: solar-tender-stopped
+        title: Tender stopped
+        isPaused: false
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 21600, to: 0 }
+            datasourceUid: solar
+            model:
+              refId: A
+              rawQuery: true
+              resultFormat: time_series
+              query: SELECT max("battery_v") FROM "charge_controller" WHERE $timeFilter
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{ evaluator: { type: lt, params: [13.0] } }]
+        noDataState: OK
+        execErrState: OK
+        for: 0s
+        annotations:
+          summary: >-
+            The battery's highest in 6 h: {{ printf "%.1f" $values.B.Value }} V; on the tender it floats at 13.5 V (alerts below 13.0 V).
+
+      # The service writes a `collector` point every cycle, `not_found` when the
+      # car is away, so none for 30 minutes means the Pi, its network or the
+      # service is down, not the car. InfluxDB is on the Pi, so a Pi that
+      # Grafana can't reach (an error, not "no data") counts too. The 30 minutes
+      # pending rides out short network spells.
+      - uid: solar-collector-silent
+        title: Collector silent
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 1800, to: 0 }
+            datasourceUid: solar
+            model:
+              refId: A
+              rawQuery: true
+              resultFormat: time_series
+              query: SELECT count("outcome") FROM "collector" WHERE $timeFilter
+          - refId: B
+            datasourceUid: __expr__
+            model: { refId: B, type: reduce, expression: A, reducer: last }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions: [{ evaluator: { type: lt, params: [1] } }]
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 30m
+        annotations:
+          summary: >-
+            No readings from the collector for an hour, or its InfluxDB can't be reached.

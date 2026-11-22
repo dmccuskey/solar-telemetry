@@ -118,6 +118,14 @@ journalctl -u solar-telemetry-weather -p warning --since today
 
 It logs one line per fetch, at each mark of `refresh_s` on the clock plus a minute (:01, :16, :31, :46 by default). A failed fetch (no internet, Open-Meteo down or refusing) is a warning, and the next fetch fills the gap, up to a day back; for a longer outage, run it by hand with `--days N` (it fills those days on its first fetch, then goes on fetching: stop it with Ctrl-C once that line is logged). It shares InfluxDB's queue logic with the service, but never restarts InfluxDB. A bad or missing `[weather]` location makes it exit with status 2, and systemd leaves it stopped until the config is fixed.
 
+## When an Alert Comes
+
+The optional alerts ([installation](installation.md#alerts)) arrive on the phone as "Solar: …", and as "Solar: …, resolved" when they clear:
+
+- **Battery low:** the battery has been below 12.4 V for 3 hours. Outside, on a run of dark days, the sun may bring it back; otherwise charge it. A battery left low sulphates.
+- **Tender stopped:** on the tender, the battery has been below 13.0 V for 6 hours: check the tender's light, its fuse, the plug and the clamps. When the car is back outside, pause the rule (`isPaused: true` in the installed file, then restart Grafana), or it fires every night.
+- **Collector silent:** Grafana has had no readings for an hour. Check whether the Pi can be reached at all (above); if it can, check the service ([When It Stops Reading](#when-it-stops-reading)). A Pi that collects but can't be reached for a while trips it too: its readings come in once it can be.
+
 ## When It Stops Reading
 
 Check, in this order:
